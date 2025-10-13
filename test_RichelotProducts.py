@@ -1,4 +1,4 @@
-from RMIsogenies.RichelotProducts import *
+from RichelotProducts import *
 from sage.all import LCM
 
 def test_product_creation():

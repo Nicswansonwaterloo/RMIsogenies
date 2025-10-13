@@ -3,8 +3,8 @@ from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 
-from .dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
-from .dependencies.Castryck_Decru_SageMath.richelot_aux import FromProdToJac
+from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from dependencies.Castryck_Decru_SageMath.richelot_aux import FromProdToJac
 
 # Functions to generate products of supersingular elliptic curves
 # with specified or arbitrary j-invariants. The input is a F = GF(p^2) for some prime p (j = 1728 and 0 may not be supersingular over F).
