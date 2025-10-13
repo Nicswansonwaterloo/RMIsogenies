@@ -1,4 +1,4 @@
-from RichelotProducts import *
+from richelot_products import *
 from sage.all import LCM
 
 def test_product_creation():
@@ -35,11 +35,16 @@ test_product_creation()
 
 def test_isotropic_torsion_basis():
     E1, E2 = get_arbitrary_product_example(2**11 * 3**5 - 1)
-    F = E1.base_field()
-    P2_1, Q2_1 = isotropic_torsion_basis(E1, 2)
+    P2_1, Q2_1 = torsion_basis(E1, 2)
     assert P2_1.order() == 2
     assert Q2_1.order() == 2
-    assert P2_1.weil_pairing(Q2_1, 2, algorithm='pari') == F(-1)
+    assert P2_1.weil_pairing(Q2_1, 2).multiplicative_order() == 2
+    
+    P2e_1, Q2e_1 = torsion_basis(E1, 2**11)
+    assert P2e_1.order() == 2**11
+    assert Q2e_1.order() == 2**11
+    assert P2e_1.weil_pairing(Q2e_1, 2**11).multiplicative_order() == 2**11
+    
 
 test_isotropic_torsion_basis()
 
@@ -63,8 +68,8 @@ test_maximal_isotropic_subgroups_of_N_torsion()
 def test_diagonal_isogenies():
     number_of_diagonal_kernels = 0
     E1, E2 = get_arbitrary_square_example(2**11 * 3**5 - 1)
-    P2_1, Q2_1 = isotropic_torsion_basis(E1, 2)
-    P2_2, Q2_2 = isotropic_torsion_basis(E2, 2)
+    P2_1, Q2_1 = torsion_basis(E1, 2)
+    P2_2, Q2_2 = torsion_basis(E2, 2)
     maximal_isotropic_subgroups = get_maximal_isotropic_subgroups_of_N_torsion(E1, E2, 2, P2_1, Q2_1, P2_2, Q2_2)
     for gen1, gen2 in maximal_isotropic_subgroups:
         if is_2_kernel_diagonal((gen1, gen2)):
@@ -118,6 +123,8 @@ def test_isogeny_from_product_two_kernel():
         squares = 0
         jacobians = 0
         for gen1, gen2 in maximal_isotropic_subgroups:
+            if gen1[0] == E1(0) and gen2[0] == E1(0):
+                print("Problematic kernel:", gen1, gen2)
             try:
                 codomain, isogeny = get_isogeny_from_product_two_kernel((gen1, gen2))
             except NotImplementedError:
@@ -134,7 +141,7 @@ def test_isogeny_from_product_two_kernel():
                 jacobians += 1
         return loops, products, squares, jacobians
     
-    p = 2**11 * 3**5 - 1
+    p = 2**11 * 3 - 1
     E1, E2 = get_arbitrary_product_example(p)
     loops, products, squares, jacobians = count_loops_products_squares_jacobians(E1, E2)
     # From Florit and Smith Paper

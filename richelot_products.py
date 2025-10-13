@@ -1,10 +1,12 @@
-from sage.all import EllipticCurve, GF, VectorSpace, Matrix
+from sage.all import EllipticCurve, GF, VectorSpace, Matrix, vector
 from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_curve
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from dependencies.Theta_SageMath.utilities.supersingular import torsion_basis, torsion_basis_with_pairing
 from dependencies.Castryck_Decru_SageMath.richelot_aux import FromProdToJac
+
 
 # Functions to generate products of supersingular elliptic curves
 # with specified or arbitrary j-invariants. The input is a F = GF(p^2) for some prime p (j = 1728 and 0 may not be supersingular over F).
@@ -66,28 +68,8 @@ def get_1728_product_example(p):
     E1 = _random_supersingular_curve(p).montgomery_model()
     return E1728, E1
 
-def isotropic_torsion_basis(E, N):
-    """
-    Returns P, Q that generate E[N]. We choose generators so that e_N(P, Q) = -1. 
-    Generated naively by computing all N torsion and then checking all pairs of N-torsion points.
-    This should be a deterministic function.
-    """
-    O = E(0)
-    all_N_torsion = O.division_points(N)
-    all_N_torsion = sorted(all_N_torsion)
-    for i in range(len(all_N_torsion)):
-        P = all_N_torsion[i]
-        if P == O:
-            continue
-        for j in range(i+1, len(all_N_torsion)):
-            Q = all_N_torsion[j]
-            if Q == O:
-                continue
-            if P.weil_pairing(Q, N, algorithm='pari') == -1:
-                return P, Q
 
-    raise ValueError(f"Could not find basis for {N}-torsion with Weil pairing -1. Rational N torsion points: {all_N_torsion}")
-
+# Deprecated: use torsion_basis(E1, 2**e) from dependencies.Theta_SageMath.utilities.supersingular instead.
 def get_maximal_isotropic_subspaces(N):
     """
     Returns a list of 2-dimensional maximal isotropic subspaces of (Z/NZ)^4
@@ -108,26 +90,29 @@ def get_maximal_isotropic_subspaces(N):
     subspaces = sorted(subspaces, key=lambda mat: tuple(mat.list()))
     return subspaces
 
+
 def get_maximal_isotropic_subgroups_of_N_torsion(E1, E2, N, PN_1=None, QN_1=None, PN_2=None, QN_2=None):
     """
     Args:
         E1 (EllipticCurve): First elliptic curve over a field of characteristic != 2.
         E2 (EllipticCurve): Second elliptic curve over the same field.
         N (int): The order of the torsion subgroup (must be prime).
-        PN_1, QN_1: Basis for E1[N] with Weil pairing -1 (optional).
-        PN_2, QN_2: Basis for E2[N] with Weil pairing -1 (optional).
+        PN_1, QN_1: Basis for E1[N] (optional).
+        PN_2, QN_2: Basis for E2[N] (optional).
 
     Returns:
         list: List of tuples of CouplePoint objects generating maximal isotropic subgroups of E1[N] x E2[N].
     """
     if PN_1 is None or QN_1 is None:
-        PN_1, QN_1 = isotropic_torsion_basis(E1, N)
+        PN_1, QN_1 = torsion_basis(E1, N)
     if PN_2 is None or QN_2 is None:
-        PN_2, QN_2 = isotropic_torsion_basis(E2, N)
+        PN_2, QN_2 = torsion_basis(E2, N)
     symplectic_basis = [CouplePoint(PN_1, E2(0)), CouplePoint(E1(0), PN_2), CouplePoint(QN_1, E2(0)), CouplePoint(E1(0), QN_2)]
+    
     def vec_to_point(vec):
         components = [vec[i] * symplectic_basis[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
+    
     subspaces = get_maximal_isotropic_subspaces(N)
     maximal_isotropic_subgroups = []
     for u, v in subspaces:
@@ -254,10 +239,12 @@ def get_isogeny_from_product_two_kernel(kernel):
         E1_w = Psi_1.codomain()
         Psi_2 = WeierstrassIsomorphism(E2, (1, -1, 0, 0))
         E2_w = Psi_2.codomain()
-        h, _, _, _, _, isogeny = FromProdToJac(E1_w, E2_w, Psi_1(kernel[0][0]), Psi_1(kernel[1][0]), Psi_2(kernel[0][1]), Psi_2(kernel[1][1]), 1)
+
+        h, _, _, _, _, isogeny = FromProdToJac(E1_w, E2_w, Psi_1(P2_1), Psi_1(Q2_1), Psi_2(P2_2), Psi_2(Q2_2), 1)
         def isogeny_wrapped(cp_pt: CouplePoint):
             P, Q = cp_pt
             P = Psi_1(P)
             Q = Psi_2(Q)
             return isogeny(CouplePoint(P, Q))
+        
         return (h, isogeny_wrapped)
