@@ -1,6 +1,6 @@
 from sage.all import is_prime, GF, Integers, identity_matrix, vector
 # from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
-from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
+from sage.schemes.hyperelliptic_curves.invariants import  absolute_igusa_invariants_kohel
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from richelot_products import get_arbitrary_square_example, get_isogeny_from_product_two_kernel, get_maximal_isotropic_subspaces
 from richelot_rm_utils import RMVertex, get_isogeny_from_jacobian_two_kernel, golden_ratio_action_on_symplectic_torsion
@@ -40,7 +40,6 @@ def compute_neighbor_vertices(vertex):
     torsion_basis = vertex.torsion_basis
     two_torsion_basis = [2**(r - 1)*P for P in torsion_basis]
     new_action = vertex.action.change_ring(Integers(2**(r - 1)))
-    print(type(two_torsion_basis[0]))
     
     def vec_to_point(vec):
                 components = [int(vec[i]) * two_torsion_basis[i] for i in range(4)]
@@ -58,15 +57,16 @@ def compute_neighbor_vertices(vertex):
             if vertex.is_product():
                 av, phi = get_isogeny_from_product_two_kernel(kernel_generators)
             else:
-                av, phi = get_isogeny_from_jacobian_two_kernel(kernel_generators)
+                h = vertex.variety
+                av, phi = get_isogeny_from_jacobian_two_kernel(h, kernel_generators)
             
             # phi kills "half" of the 2-torsion, meaning we have to adjust so that the RM action is now on 2^(r-1)-torsion.
             new_torsion_basis = []
             for i in range(4):
                 if two_torsion_basis[i] not in kernel_generators:
-                    new_torsion_basis.append(phi(2 * torsion_basis[i]))
+                    new_torsion_basis.append(phi([*(2*torsion_basis[i])]))
                 else:
-                    new_torsion_basis.append(phi(torsion_basis[i]))
+                    new_torsion_basis.append(phi([*torsion_basis[i]]))
 
             neighboring_vertices.append(RMVertex(av, r - 1, new_action, new_torsion_basis))
 
@@ -74,7 +74,7 @@ def compute_neighbor_vertices(vertex):
 
 
 for neighbor in compute_neighbor_vertices(initial_vertex):
-    if str(neighbor)[0] == "J":
+    if neighbor.is_jacobian():
         jacobian_neighbor = neighbor
         print(compute_neighbor_vertices(jacobian_neighbor))
         break
