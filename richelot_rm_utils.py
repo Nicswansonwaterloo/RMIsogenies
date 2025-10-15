@@ -1,6 +1,7 @@
 from sage.all import Matrix, Integers
 
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
+from dependencies.Castryck_Decru_SageMath.richelot_aux import FromJacToJac
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 
 
@@ -11,13 +12,17 @@ def golden_ratio_endomorphism(cp_pt):
 
 def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
     """ Returns the matrix of the action of the golden ratio endomorphism on the ell^e-torsion,
-        with respect to the basis [ (P2_1, 0), (Q2_1, 0), (0, P2_2), (0, Q2_2) ].
+        with respect to the basis [ (P2_1, 0), (0, P2_2), (Q2_1, 0), (0, Q2_2) ].
     """
     Zle = Integers(ell**e)
-    return Matrix(Zle, [[0, 0, 1, 0],
-                       [0, 0, 0, 1],
-                       [1, 0, 1, 0],
-                       [0, 1, 0, 1]])
+    return Matrix(Zle, [[0, 1, 0, 0],
+                        [1, 1, 0, 0],
+                        [0, 0, 0, 1],
+                        [0, 0, 1, 1]])
+
+def get_isogeny_from_jacobian_two_kernel(kernel_generators):
+    # TODO: Detect when codomain is jacobian vs product
+    return FromJacToJac(kernel_generators[0], kernel_generators[1])
 
 class RMVertex:
     """
