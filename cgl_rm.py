@@ -1,16 +1,16 @@
-from sage.all import is_prime, GF, Integers, identity_matrix, vector
+from sage.all import is_prime, GF, Integers, identity_matrix, vector, HyperellipticCurve, set_random_seed
 # from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 from sage.schemes.hyperelliptic_curves.invariants import  absolute_igusa_invariants_kohel
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from richelot_products import get_arbitrary_square_example, get_isogeny_from_product_two_kernel, get_maximal_isotropic_subspaces
 from richelot_rm_utils import RMVertex, get_isogeny_from_jacobian_two_kernel, golden_ratio_action_on_symplectic_torsion
 
-e = 11
+e = 4
 f = 3
 p = 2**e * f - 1
 assert is_prime(p)
 assert p % 4 == 3
-
+set_random_seed(42)
 E1, E2 = get_arbitrary_square_example(p)
 P2e_1, Q2e_1 = E1.torsion_basis(2 ** e)
 P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
@@ -58,15 +58,16 @@ def compute_neighbor_vertices(vertex):
                 av, phi = get_isogeny_from_product_two_kernel(kernel_generators)
             else:
                 h = vertex.variety
+                print(h)
                 av, phi = get_isogeny_from_jacobian_two_kernel(h, kernel_generators)
             
             # phi kills "half" of the 2-torsion, meaning we have to adjust so that the RM action is now on 2^(r-1)-torsion.
             new_torsion_basis = []
             for i in range(4):
                 if two_torsion_basis[i] not in kernel_generators:
-                    new_torsion_basis.append(phi([*(2*torsion_basis[i])]))
+                    new_torsion_basis.append(phi(2 * torsion_basis[i]))
                 else:
-                    new_torsion_basis.append(phi([*torsion_basis[i]]))
+                    new_torsion_basis.append(phi(torsion_basis[i]))
 
             neighboring_vertices.append(RMVertex(av, r - 1, new_action, new_torsion_basis))
 

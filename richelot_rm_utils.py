@@ -38,6 +38,7 @@ def get_isogeny_from_jacobian_two_kernel(h, kernel_generators):
     # TODO: Detect when codomain is jacobian vs product
     is_split, G1, G2, G3 = is_jac_kernel_split(h, kernel_generators)
     if is_split:
+        print(f"G1: {G1}, G2: {G2}, G3: {G3}")
         isogeny, av = FromJacToProd(G1, G2, G3)
     else:
         av, _, _, _, _, isogeny, _ = FromJacToJac(h, *kernel_generators[0], *kernel_generators[1], 1)
