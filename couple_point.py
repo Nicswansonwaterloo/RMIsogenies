@@ -1,4 +1,4 @@
-from sage.all import ZZ, lcm
+from sage.all import ZZ
 from ..utilities.discrete_log import weil_pairing_pari
 
 
@@ -26,7 +26,7 @@ class CouplePoint:
         return self.P1, self.P2
 
     def order(self):
-        return lcm(self.P1.order(), self.P2.order())
+        return (self.P1.order(), self.P2.order())
 
     def double(self):
         """

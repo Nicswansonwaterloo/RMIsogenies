@@ -52,6 +52,8 @@ class RMVertex:
 
 
     def _compute_weil_pairing(self):
+        if self.is_jacobian():
+            raise NotImplementedError("Weil pairing computation for Jacobians is not yet implemented.")
         # Placeholder for actual Weil pairing computation
         Me = Matrix(GF(2), 4, 4)
         for i, P in enumerate(self.two_torsion_basis):
@@ -95,8 +97,8 @@ class RMVertex:
 
     def generate_RM_kernels(self):
         maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
+        assert len(maximal_isotropic_subspaces) == 15, f"Expected 15 maximal isotropic subspaces, got {len(maximal_isotropic_subspaces)}"
         Mphi = self.rm_action.change_ring(GF(2))
-
         kernels = []
         subspaces = []
         for subspace in maximal_isotropic_subspaces:
@@ -108,4 +110,32 @@ class RMVertex:
                 subspaces.append(subspace)
 
         return kernels, subspaces
+
+    def get_neighbor(self, codomain, phi, phi_subspace):
+        W = phi_subspace
+        W_perp = W.kernel().basis_matrix().transpose()
+
+        W_points = [self._vector_to_point(W.column(i), two_torsion=False) for i in range(2)]
+        W_perp_points = [2 * self._vector_to_point(W_perp.column(i), two_torsion=False) for i in range(2)]
+        new_torsion_gens = W_points + W_perp_points
+        new_torsion_gens = [phi(pt) for pt in new_torsion_gens]
+        # Verify that the new torsion generators have the correct orders (P.order() ) not implemented yet
+        assert all(P * 2**(self.r - 1) == 0 and P * 2**(self.r - 2) != 0 for P in new_torsion_gens)
+
+        # Let C be the change of basis matrix
+        C = W.augment(W_perp)
+        assert C.is_invertible(), "Change of basis matrix is not invertible."
+        C_inv = C.inverse()
+
+        # Change to be over 2^(r - 1)
+        C_lifted = C.change_ring(Integers(2**(self.r - 1)))
+        C_inv_lifted = C_inv.change_ring(Integers(2**(self.r - 1)))
+        reduced_rm_action = self.rm_action.change_ring(Integers(2**(self.r - 1)))
+
+        M_phi_prime = C_inv_lifted * reduced_rm_action * C_lifted
+        
+        # The change of basis for a bilinear form B is C^T * B * C
+        M_e_prime = C.transpose() * self.weil_pairing * C
+
+        return RMVertex(codomain, self.r - 1, new_torsion_gens, M_phi_prime, M_e_prime)
                 
