@@ -277,6 +277,7 @@ def FromJacToJac(h, D11, D12, D21, D22, a, powers=None):
             for l, _D1, _D2 in next_powers]
     return hnew, imD1[0], imD1[1], imD2[0], imD2[1], R.map, next_powers
 
+
 def FromJacToProd(G1, G2, G3):
     """
     Construct the "split" isogeny from Jac(y^2 = G1*G2*G3)
@@ -350,8 +351,8 @@ def FromJacToProd(G1, G2, G3):
         print(f"U_: {U_}, V_: {V_}")
         v1, v0 = V_[1], V_[0]
         # prepare symmetric functions
-        s = - U_[1] / U_[2]
-        p = U_[0] / U_[2]
+        s = - U_[1] / U_[2] # s = x1 + x2
+        p = U_[0] / U_[2] # p = x1 * x2
         print(f"s: {s}, p: {p}")
         # compute Mumford coordinates on E1
         # Points x1, x2 map to x1^2, x2^2
@@ -360,33 +361,54 @@ def FromJacToProd(G1, G2, G3):
         print(f"U1 roots: {U1.roots()}")
         # y = v1 x + v0 becomes (y - v0)^2 = v1^2 x^2
         # so 2v0 y-v0^2 = p1 - v1^2 xH^2 = p1 - v1^2 xE1
-        V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+        # V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+        ### Added by Nic Swanson for Debugging
+        E1_image = None
+        if v0.is_zero() and s.is_zero():
+            E1_image = E1(0)
+        else:
+            if v0.is_zero():
+                V1 = v1 / s * (x + p)
+            else:
+                V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+
+            V1 = V1 % U1
+            U1red = (p1 - V1**2) // U1
+            xP1 = -U1red[0] / U1red[1]
+            yP1 = V1(xP1)
+            assert yP1**2 == p1(xP1)
+            E1_image = E1(morphE1(xP1, yP1))
+        ###
         # Reduce Mumford coordinates to get a E1 point
-        V1 = V1 % U1
-        U1red = (p1 - V1**2) // U1
-        xP1 = -U1red[0] / U1red[1]
-        yP1 = V1(xP1)
-        assert yP1**2 == p1(xP1)
+        
         # Same for E2
         # Points x1, x2 map to 1/x1^2, 1/x2^2
         U2 = x**2 - (s*s-2*p)/p**2*x + 1/p**2
-        # yE = y1/x1^3, xE = 1/x1^2
-        # means yE = y1 x1 xE^2
-        # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
-        # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
-        V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
-        V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
-        # V21 * y = V20
-        _, V21inv, _ = V21.xgcd(U2)
-        V2 = (V21inv * V20) % U2
-        assert V2**2 % U2 == p2 % U2
-        # Reduce coordinates
-        U2red = (p2 - V2**2) // U2
-        xP2 = -U2red[0] / U2red[1]
-        yP2 = V2(xP2)
-        assert yP2**2 == p2(xP2)
+        E2_image = None
+        if v1.is_zero() and s.is_zero():
+            E2_image = E2(0)
+        else: 
+            # yE = y1/x1^3, xE = 1/x1^2
+            # means yE = y1 x1 xE^2
+            # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
+            # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
+            V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
+            V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
+            # V21 * y = V20
+            _, V21inv, _ = V21.xgcd(U2)
+            V2 = (V21inv * V20) % U2
+            print(f"U2: {U2}, V2: {V2}")
+            print(f"U2 roots: {U2.roots()}")
+            print(f"V21: {V21}, V20: {V20}")
+            assert V2**2 % U2 == p2 % U2
+            # Reduce coordinates
+            U2red = (p2 - V2**2) // U2
+            xP2 = -U2red[0] / U2red[1]
+            yP2 = V2(xP2)
+            assert yP2**2 == p2(xP2)
+            E2_image = E2(morphE2(xP2, yP2))
 
-        return E1(morphE1(xP1, yP1)), E2(morphE2(xP2, yP2))
+        return E1_image, E2_image
 
     return isogeny, (E1, E2)
 

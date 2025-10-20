@@ -1,6 +1,57 @@
 from richelot_products import *
 from sage.all import LCM
 
+def get_maximal_isotropic_subspaces(N):
+    """
+    Returns a list of 2-dimensional maximal isotropic subspaces of (Z/NZ)^4
+    with respect to the standard symplectic form.
+    """
+    V = VectorSpace(GF(N), 4)
+    B = Matrix(GF(N), [[0, 0, 1, 0],
+                       [0, 0, 0, 1],
+                       [-1, 0, 0, 0],
+                       [0, -1, 0, 0]])
+    subspaces = []
+    for W in V.subspaces(2):
+        gens = W.gens()
+        u, v = gens[0], gens[1]
+        if (u * B) * v == 0:
+            subspaces.append(Matrix([u, v]))
+    # Sort the subspaces canonically by their generators (row-wise, lex order)
+    subspaces = sorted(subspaces, key=lambda mat: tuple(mat.list()))
+    return subspaces
+
+
+def get_maximal_isotropic_subgroups_of_N_torsion(E1, E2, N, PN_1=None, QN_1=None, PN_2=None, QN_2=None):
+    """
+    Args:
+        E1 (EllipticCurve): First elliptic curve over a field of characteristic != 2.
+        E2 (EllipticCurve): Second elliptic curve over the same field.
+        N (int): The order of the torsion subgroup (must be prime).
+        PN_1, QN_1: Basis for E1[N] (optional).
+        PN_2, QN_2: Basis for E2[N] (optional).
+
+    Returns:
+        list: List of tuples of CouplePoint objects generating maximal isotropic subgroups of E1[N] x E2[N].
+    """
+    if PN_1 is None or QN_1 is None:
+        PN_1, QN_1 = torsion_basis(E1, N)
+    if PN_2 is None or QN_2 is None:
+        PN_2, QN_2 = torsion_basis(E2, N)
+    symplectic_basis = [CouplePoint(PN_1, E2(0)), CouplePoint(E1(0), PN_2), CouplePoint(QN_1, E2(0)), CouplePoint(E1(0), QN_2)]
+    
+    def vec_to_point(vec):
+        components = [vec[i] * symplectic_basis[i] for i in range(4)]
+        return components[0] + components[1] + components[2] + components[3]
+    
+    subspaces = get_maximal_isotropic_subspaces(N)
+    maximal_isotropic_subgroups = []
+    for u, v in subspaces:
+        gen1 = vec_to_point(u)
+        gen2 = vec_to_point(v)
+        maximal_isotropic_subgroups.append((gen1, gen2))
+    return maximal_isotropic_subgroups
+
 def test_product_creation():
     p = 2**11 * 3**5 - 1
     E1, E2 = get_arbitrary_product_example(p)

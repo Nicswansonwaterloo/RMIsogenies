@@ -1,8 +1,10 @@
-from sage.all import Matrix, Integers
+from sage.all import Matrix, Integers, GF, VectorSpace
 
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 from dependencies.Castryck_Decru_SageMath.richelot_aux import FromJacToJac, FromJacToProd
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from richelot_products import get_isogeny_from_product_two_kernel
+from richelot_jacobians import get_isogeny_from_jacobian_two_kernel
 
 
 def golden_ratio_endomorphism(cp_pt):
@@ -20,29 +22,13 @@ def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
                         [0, 0, 0, 1],
                         [0, 0, 1, 1]])
 
-def is_jac_kernel_split(h, kernel_generators):
-    D11, D12 = kernel_generators[0]
-    D21, D22 = kernel_generators[1]
-    G1 = D11
-    G2 = D21
-    G3, _ = h.quo_rem(G1 * G2)
-
-    delta = Matrix(G.padded_list(3) for G in (G1,G2,G3))
-    if delta.determinant():
-        # Determinant is non-zero, no splitting
-        return False, None, None, None
-    
-    return True, G1, G2, G3
-
-def get_isogeny_from_jacobian_two_kernel(h, kernel_generators):
-    # TODO: Detect when codomain is jacobian vs product
-    is_split, G1, G2, G3 = is_jac_kernel_split(h, kernel_generators)
-    if is_split:
-        print(f"G1: {G1}, G2: {G2}, G3: {G3}")
-        isogeny, av = FromJacToProd(G1, G2, G3)
+# The issue is here: I need library that computes arbitrary 2,2 isogenies! This has proven to be much harder than expected.
+def get_computable_isogeny(domain_vertex, kernel):
+    if domain_vertex.is_product():
+        av, phi = get_isogeny_from_product_two_kernel(kernel)
     else:
-        av, _, _, _, _, isogeny, _ = FromJacToJac(h, *kernel_generators[0], *kernel_generators[1], 1)
-    return av, isogeny
+        av, phi = get_isogeny_from_jacobian_two_kernel(kernel)
+    return av, phi
 
 class RMVertex:
     """
@@ -51,12 +37,32 @@ class RMVertex:
         - The vertex can either be a product of two elliptic curves or the Jacobian of a genus 2 curve. This is stored in the attribute 'variety'.
         - The RM is represented by its action on 2^r-torsion, for some r. This integer is stored in the attribute 'r'.
         - The action on the 2^r-torsion is stored in the attribute 'action', which is a 4x4 matrix with coefficients in Z/(2^r)Z.
+        - The weil pairing on the 2-torsion is stored in the attribute 'weil_pairing', which is a 4x4 matrix with coefficients in GF(2).
     """
-    def __init__(self, variety, r, action, torsion_basis):
+    def __init__(self, variety, r, torsion_generators, rm_action, weil_pairing=None):
         self.variety = variety
         self.r = r
-        self.action = action
-        self.torsion_basis = torsion_basis
+        self.torsion_generators = torsion_generators
+        self.two_torsion_basis = [2**(r - 1) * P for P in torsion_generators]
+        self.rm_action = rm_action
+        if weil_pairing is None:
+            self.weil_pairing = self._compute_weil_pairing()
+        else:
+            self.weil_pairing = weil_pairing
+
+
+    def _compute_weil_pairing(self):
+        # Placeholder for actual Weil pairing computation
+        Me = Matrix(GF(2), 4, 4)
+        for i, P in enumerate(self.two_torsion_basis):
+            for j, Q in enumerate(self.two_torsion_basis):
+                entry = P.weil_pairing(Q, 2)
+                # Apply a reduction map mu_{2^r} -> GF(2)
+                if entry == 1:
+                    Me[i, j] = 0
+                else:
+                    Me[i, j] = 1
+        return Me
 
     def is_product(self):
         return isinstance(self.variety, tuple)
@@ -71,3 +77,35 @@ class RMVertex:
     
     def __eq__(self, other):
         return repr(self.variety) == repr(other.variety)
+    
+    def _vector_to_point(self, vec, two_torsion = False):
+        generators = self.two_torsion_basis if two_torsion else self.torsion_generators
+        components = [int(vec[i]) * generators[i] for i in range(4)]
+        return components[0] + components[1] + components[2] + components[3]
+    
+    def _get_maximal_isotropic_subspaces(self):
+        V = VectorSpace(GF(2), 4)
+        isotropic_subspaces = []
+        for W in V.subspaces(2):
+            basis_matrix = W.basis_matrix().transpose()
+            if (basis_matrix.transpose() * self.weil_pairing * basis_matrix).is_zero():
+                isotropic_subspaces.append(basis_matrix)
+
+        return isotropic_subspaces
+
+    def generate_RM_kernels(self):
+        maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
+        Mphi = self.rm_action.change_ring(GF(2))
+
+        kernels = []
+        subspaces = []
+        for subspace in maximal_isotropic_subspaces:
+            phi_subspace = Mphi * subspace
+            P = subspace.augment(phi_subspace)
+            if P.rank() == 2:
+                kernel = [self._vector_to_point(subspace.column(i), two_torsion=True) for i in range(2)]
+                kernels.append(kernel)
+                subspaces.append(subspace)
+
+        return kernels, subspaces
+                
