@@ -5,7 +5,7 @@ from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorp
 
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from dependencies.Theta_SageMath.utilities.supersingular import torsion_basis, torsion_basis_with_pairing
-from dependencies.Castryck_Decru_SageMath.richelot_aux import FromProdToJac
+from richelot_products import FromProdToJac
 
 
 # Functions to generate products of supersingular elliptic curves

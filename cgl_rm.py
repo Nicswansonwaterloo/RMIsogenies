@@ -17,7 +17,7 @@ torsion_generators = [CouplePoint(P2e_1, E2(0)), CouplePoint(E1(0), P2e_2), Coup
 initial_vertex = RMVertex((E1, E2), e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e))
 
 ### Hash a random message ###
-m = [randint(0, 4) for _ in range(10)]
+m = [randint(0, 4) for _ in range(e - 1)]
 current_vertex = initial_vertex
 for i in range(len(m)):
     kernels, subspaces = current_vertex.generate_RM_kernels()
@@ -27,6 +27,4 @@ for i in range(len(m)):
     av, phi = get_computable_isogeny(current_vertex, phi_kernel)
     next_vertex = current_vertex.get_neighbor(av, phi, phi_subspace)
     current_vertex = next_vertex
-    if i == 1:
-        break
 

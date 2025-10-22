@@ -277,7 +277,6 @@ def FromJacToJac(h, D11, D12, D21, D22, a, powers=None):
             for l, _D1, _D2 in next_powers]
     return hnew, imD1[0], imD1[1], imD2[0], imD2[1], R.map, next_powers
 
-
 def FromJacToProd(G1, G2, G3):
     """
     Construct the "split" isogeny from Jac(y^2 = G1*G2*G3)
@@ -292,20 +291,11 @@ def FromJacToProd(G1, G2, G3):
     x = R.gen()
 
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
-    print(f"M: {M}")
     # Find homography
     u, v, w = M.right_kernel().gen()
-    print(f"u,v,w: {u}, {v}, {w}")
     d = u/2
     (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
-    # a = ad/d
-    ### Added by Nic Swanson for Debugging
-    print(f"ad: {ad}, d: {d}, b: {b}")
-    if ad == 0 and d == 0:
-        a = 0
-    else:
-        a = ad/d
-    ###
+    a = ad/d
 
     # Apply transform G(x) -> G((a*x+b)/(x+d))*(x+d)^2
     # The coefficients of x^2 are M * (1, a, a^2)
@@ -338,77 +328,51 @@ def FromJacToProd(G1, G2, G3):
     #   or H2->E2:(x,y) => (1/x^2,y/x^3)
 
     def isogeny(D):
-        # HyperellipticCurve(h).jacobian()(D)
+        HyperellipticCurve(h).jacobian()(D)
         # To map a divisor, perform the change of coordinates
         # on Mumford coordinates
         U, V = D
-        print(f"U: {U}, V: {V}")
         # apply homography
         # y = v1 x + v0 =>
         U_ = U[0] * (x+d)**2 + U[1]*(a*x+b)*(x+d) + U[2]*(a*x+b)**2
         V_ = V[0] * (x+d)**3 + V[1]*(a*x+b)*(x+d)**2
         V_ = V_ % U_
-        print(f"U_: {U_}, V_: {V_}")
         v1, v0 = V_[1], V_[0]
         # prepare symmetric functions
-        s = - U_[1] / U_[2] # s = x1 + x2
-        p = U_[0] / U_[2] # p = x1 * x2
-        print(f"s: {s}, p: {p}")
+        s = - U_[1] / U_[2]
+        p = U_[0] / U_[2]
         # compute Mumford coordinates on E1
         # Points x1, x2 map to x1^2, x2^2
         U1 = x**2 - (s*s - 2*p)*x + p**2
-        print(f"U1: {U1}")
-        print(f"U1 roots: {U1.roots()}")
         # y = v1 x + v0 becomes (y - v0)^2 = v1^2 x^2
         # so 2v0 y-v0^2 = p1 - v1^2 xH^2 = p1 - v1^2 xE1
-        # V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
-        ### Added by Nic Swanson for Debugging
-        E1_image = None
-        if v0.is_zero() and s.is_zero():
-            E1_image = E1(0)
-        else:
-            if v0.is_zero():
-                V1 = v1 / s * (x + p)
-            else:
-                V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
-
-            V1 = V1 % U1
-            U1red = (p1 - V1**2) // U1
-            xP1 = -U1red[0] / U1red[1]
-            yP1 = V1(xP1)
-            assert yP1**2 == p1(xP1)
-            E1_image = E1(morphE1(xP1, yP1))
-        ###
+        V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
         # Reduce Mumford coordinates to get a E1 point
-        
+        V1 = V1 % U1
+        U1red = (p1 - V1**2) // U1
+        xP1 = -U1red[0] / U1red[1]
+        yP1 = V1(xP1)
+        assert yP1**2 == p1(xP1)
         # Same for E2
         # Points x1, x2 map to 1/x1^2, 1/x2^2
         U2 = x**2 - (s*s-2*p)/p**2*x + 1/p**2
-        E2_image = None
-        if v1.is_zero() and s.is_zero():
-            E2_image = E2(0)
-        else: 
-            # yE = y1/x1^3, xE = 1/x1^2
-            # means yE = y1 x1 xE^2
-            # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
-            # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
-            V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
-            V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
-            # V21 * y = V20
-            _, V21inv, _ = V21.xgcd(U2)
-            V2 = (V21inv * V20) % U2
-            print(f"U2: {U2}, V2: {V2}")
-            print(f"U2 roots: {U2.roots()}")
-            print(f"V21: {V21}, V20: {V20}")
-            assert V2**2 % U2 == p2 % U2
-            # Reduce coordinates
-            U2red = (p2 - V2**2) // U2
-            xP2 = -U2red[0] / U2red[1]
-            yP2 = V2(xP2)
-            assert yP2**2 == p2(xP2)
-            E2_image = E2(morphE2(xP2, yP2))
+        # yE = y1/x1^3, xE = 1/x1^2
+        # means yE = y1 x1 xE^2
+        # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
+        # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
+        V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
+        V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
+        # V21 * y = V20
+        _, V21inv, _ = V21.xgcd(U2)
+        V2 = (V21inv * V20) % U2
+        # assert V2**2 % U2 == p2 % U2
+        # Reduce coordinates
+        U2red = (p2 - V2**2) // U2
+        xP2 = -U2red[0] / U2red[1]
+        yP2 = V2(xP2)
+        # assert yP2**2 == p2(xP2)
 
-        return E1_image, E2_image
+        return E1(morphE1(xP1, yP1)), E2(morphE2(xP2, yP2))
 
     return isogeny, (E1, E2)
 

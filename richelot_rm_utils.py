@@ -1,7 +1,6 @@
-from sage.all import Matrix, Integers, GF, VectorSpace
+from sage.all import Matrix, Integers, GF, VectorSpace, Integer
 
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
-from dependencies.Castryck_Decru_SageMath.richelot_aux import FromJacToJac, FromJacToProd
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from richelot_products import get_isogeny_from_product_two_kernel
 from richelot_jacobians import get_isogeny_from_jacobian_two_kernel
@@ -27,7 +26,7 @@ def get_computable_isogeny(domain_vertex, kernel):
     if domain_vertex.is_product():
         av, phi = get_isogeny_from_product_two_kernel(kernel)
     else:
-        av, phi = get_isogeny_from_jacobian_two_kernel(kernel)
+        av, phi = get_isogeny_from_jacobian_two_kernel(kernel, domain_vertex.variety)
     return av, phi
 
 class RMVertex:
@@ -112,20 +111,33 @@ class RMVertex:
         return kernels, subspaces
 
     def get_neighbor(self, codomain, phi, phi_subspace):
+        print(f"phi: \n{phi}\n")
         W = phi_subspace
         W_perp = W.kernel().basis_matrix().transpose()
 
-        W_points = [self._vector_to_point(W.column(i), two_torsion=False) for i in range(2)]
-        W_perp_points = [2 * self._vector_to_point(W_perp.column(i), two_torsion=False) for i in range(2)]
-        new_torsion_gens = W_points + W_perp_points
-        new_torsion_gens = [phi(pt) for pt in new_torsion_gens]
-        # Verify that the new torsion generators have the correct orders (P.order() ) not implemented yet
-        assert all(P * 2**(self.r - 1) == 0 and P * 2**(self.r - 2) != 0 for P in new_torsion_gens)
-
-        # Let C be the change of basis matrix
-        C = W.augment(W_perp)
+        C = W.augment(W_perp) # Change of basis matrix
         assert C.is_invertible(), "Change of basis matrix is not invertible."
         C_inv = C.inverse()
+
+        new_torsion_gens = [self._vector_to_point(col, two_torsion=False) for col in C.columns()]
+        for i, P in enumerate(new_torsion_gens):
+            P_image = phi(P) if i < 2 else phi(2 * P)
+            print(type(P_image))
+            print(2 * P_image)
+            new_torsion_gens[i] = P_image
+
+        # print(f"New torsion generators:\n{new_torsion_gens}")
+        # print(f"W:\n{W}")
+        # print(f"W_perp:\n{W_perp}")
+        # print(type(should_be_zero[0]))
+        # if isinstance(should_be_zero[0], tuple):
+        #     print(len(should_be_zero[0]))
+        # print(should_be_zero[0])
+
+        # should_be_zero = [Integer(2**(self.r - 1)) * P for P in new_torsion_gens]
+        # two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]        
+        # assert all(P == 0 for P in should_be_zero), f"Should be zero check failed:\n {should_be_zero}"
+        # assert all(P != 0 for P in two_torsion_orders), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
 
         # Change to be over 2^(r - 1)
         C_lifted = C.change_ring(Integers(2**(self.r - 1)))
@@ -133,8 +145,6 @@ class RMVertex:
         reduced_rm_action = self.rm_action.change_ring(Integers(2**(self.r - 1)))
 
         M_phi_prime = C_inv_lifted * reduced_rm_action * C_lifted
-        
-        # The change of basis for a bilinear form B is C^T * B * C
         M_e_prime = C.transpose() * self.weil_pairing * C
 
         return RMVertex(codomain, self.r - 1, new_torsion_gens, M_phi_prime, M_e_prime)
