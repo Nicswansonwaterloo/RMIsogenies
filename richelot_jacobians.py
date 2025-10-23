@@ -1,41 +1,63 @@
 from sage.all import Matrix, GF, PolynomialRing, EllipticCurve, HyperellipticCurve, vector, ZZ
 
 def is_jac_kernel_split(h, kernel_generators):
-    print(h, kernel_generators)
+    """
+    Checks if the kernel of a Jacobian isogeny splits.
+
+    :param h: The polynomial defining the hyperelliptic curve.
+    :param kernel_generators: A list of two kernel generators.
+    :return: A tuple (is_split, G1, G2, G3) where is_split is a boolean.
+    """
     D11, D12 = kernel_generators[0]
     D21, D22 = kernel_generators[1]
     G1 = D11
     G2 = D21
-    G3, _ = h.quo_rem(G1 * G2)
+    G3, r3 = h.quo_rem(G1 * G2)
+    assert r3 == 0, f"h: {h} \n G1: {G1} \n G2: {G2} \n r3: {r3}"
 
     delta = Matrix(G.padded_list(3) for G in (G1,G2,G3))
     if delta.determinant():
         # Determinant is non-zero, no splitting
-        return False, None, None, None
+        return False, G1, G2, G3
     
     return True, G1, G2, G3
 
 def get_isogeny_from_jacobian_two_kernel(kernel_generators, h):
+    """
+    Computes an isogeny from a Jacobian with a given 2-torsion kernel.
+
+    :param kernel_generators: The kernel generators of the isogeny.
+    :param h: The polynomial defining the hyperelliptic curve.
+    :return: A tuple (codomain, isogeny_map).
+    """
     is_split, G1, G2, G3 = is_jac_kernel_split(h, kernel_generators)
     if is_split:
-        isogeny, av = FromJacToProd(G1, G2, G3)
+        return FromJacToProd(G1, G2, G3)
     else:
-        av, _, _, _, _, isogeny, _ = FromJacToJac(h, *kernel_generators[0], *kernel_generators[1], 1)
-    return av, isogeny
+        return FromJacToJac(G1, G2, G3)
 
 
-def FromProdToJac(C, E, P_c, Q_c, P, Q, a):
+def FromProdToJac(P, Q):
+    """
+    Constructs an isogeny from a product of two elliptic curves to a Jacobian of a hyperelliptic curve. Given two 2-torsion points generating the kernel on the product.
+
+    :param P: A 2-torsion point on C x E. (CouplePoint)
+    :param Q: A 2-torsion point on C x E. (CouplePoint)
+    :return: A tuple (h, D11, D12, D21, D22, isogeny) where h is the new curve polynomial,
+             (D11, D12) and (D21, D22) are image points, and isogeny is the map.
+    """
+
+    assert P.order() == 2 and Q.order() == 2, "Points must be of order 2."
+
+    P_c, P_e = P
+    Q_c, Q_e = Q
+    C = P_c.curve()
     Fp2 = C.base()
     Rx = PolynomialRing(Fp2, name="x")
-    x = Rx.gens()[0]
+    x = Rx.gen()
 
-    P_c2 = 2**(a-1)*P_c
-    Q_c2 = 2**(a-1)*Q_c
-    P2 = 2**(a-1)*P
-    Q2 = 2**(a-1)*Q
-
-    a1, a2, a3 = P_c2[0], Q_c2[0], (P_c2 + Q_c2)[0]
-    b1, b2, b3 = P2[0], Q2[0], (P2 + Q2)[0]
+    a1, a2, a3 = P_c[0], Q_c[0], (P_c + Q_c)[0]
+    b1, b2, b3 = P_e[0], Q_e[0], (P_e + Q_e)[0]
 
     # Compute coefficients
     M = Matrix(Fp2, [
@@ -80,25 +102,7 @@ def FromProdToJac(C, E, P_c, Q_c, P, Q, a):
         if P:
             return JP
 
-    imPcP = isogeny((P_c, P))
-    imQcQ = isogeny((Q_c, Q))
-
-    # Validate result, for debugging
-    # def projC(_x, _y):
-    #     return (s1 * _x^2 + s2, s1 * _y)
-    # def projE(_x, _y):
-    #     return (t1 / _x^2 + t2, t1 * _y / _x^3)
-    # Fp4 = Fp2.extension(2)
-    # E4 = E.change_ring(Fp4)
-    # C4 = C.change_ring(Fp4)
-    # divP = [(xr, imPcP[1](xr)) for xr, _ in imPcP[0].roots(Fp4)]
-    # assert 2*E4(P) == sum(E4(*projE(*pt)) for pt in divP)
-    # assert 2*C4(P_c) == sum(C4(*projC(*pt)) for pt in divP)
-    # divQ = [(xr, imQcQ[1](xr)) for xr, _ in imQcQ[0].roots(Fp4)]
-    # assert 2*E4(Q) == sum(E4(*projE(*pt)) for pt in divQ)
-    # assert 2*C4(Q_c) == sum(C4(*projC(*pt)) for pt in divQ)
-
-    return h, imPcP[0], imPcP[1], imQcQ[0], imQcQ[1], isogeny
+    return h, isogeny
 
 class RichelotCorr:
     """
@@ -138,6 +142,15 @@ class RichelotCorr:
       (x-degree 4)
     """
     def __init__(self, G1, G2, H1, H2, hnew):
+        """
+        Initializes the Richelot correspondence.
+
+        :param G1: First quadratic factor of the domain curve polynomial.
+        :param G2: Second quadratic factor of the domain curve polynomial.
+        :param H1: First quadratic factor of the codomain curve polynomial.
+        :param H2: Second quadratic factor of the codomain curve polynomial.
+        :param hnew: The polynomial of the codomain curve.
+        """
         assert G1[2].is_one() and G2[2].is_one()
         self.G1 = G1
         self.G2 = G2
@@ -146,11 +159,12 @@ class RichelotCorr:
         self.H12 = H1*H2
         self.H22 = H2*H2
         self.hnew = hnew
+        self.jacobian = HyperellipticCurve(hnew).jacobian()
         self.x = hnew.parent().gen()
 
-    def map(self, D):
-        "Computes (non-monic) Mumford coordinates for the image of D"
-        U, V = D
+    def map(self, P):
+        "Computes (non-monic) Mumford coordinates for the image of P"
+        U, V = P
         if not U[2].is_one():
             U = U / U[2]
         V = V  % U
@@ -195,78 +209,23 @@ class RichelotCorr:
 
         Dx = ((self.hnew - Py ** 2) // Px)
         Dy = (-Py) % Dx
-        return (Dx, Dy)
+        return self.jacobian([Dx, Dy])
 
-def jacobian_double(h, u, v):
+def FromJacToJac(G1, G2, G3):
     """
-    Computes the double of a jacobian point (u,v)
-    given by Mumford coordinates: except that u is not required
-    to be monic, to avoid redundant reduction during repeated doubling.
+    Computes a Richelot isogeny between two Jacobians of hyperelliptic curves.
 
-    See SAGE cantor_composition() and cantor_reduction
+    :param G1: First quadratic factor of the curve polynomial.
+    :param G2: Second quadratic factor of the curve polynomial.
+    :param G3: Third quadratic factor of the curve polynomial. Cannot be a linear combination of G1 and G2.
+    :return: A tuple (h_new, phi) where phi is a function that computes the image of a RichelotJacobianPoint
+      under the isogeny with kernel <P, Q> where P, Q correspond to the splittings G1 G2.
     """
-    assert u.degree() == 2
-    # Replace u by u^2
-    # Compute h3 the inverse of 2*v modulo u
-    # Replace v by (v + h3 * (h - v^2)) % u
-    q, r = u.quo_rem(2*v)
-    if r[0] == 0: # gcd(u, v) = v, very improbable
-        a = q**2
-        b = (v + (h - v**2) // v) % a
-        return a, b
-    else: # gcd(u, v) = 1
-        h3 = 1 / (-r[0]) * q
-        a = u*u
-        b = (v + h3 * (h - v**2)) % a
-        # Cantor reduction
-        Dx = (h - b**2) // a
-        Dy = (-b) % Dx
-        return Dx, Dy
-
-def jacobian_iter_double(h, u, v, n):
-    for _ in range(n):
-        u, v = jacobian_double(h, u, v)
-    return u.monic(), v
-
-def FromJacToJac(h, D11, D12, D21, D22, a, powers=None):
-    # power is an optional list of precomputed tuples
-    # (l, 2^l D1, 2^l D2) where l < a are increasing
-    R,x = h.parent().objgen()
-    Fp2 = R.base()
-
-    D1 = (D11, D12)
-    D2 = (D21, D22)
-
-    next_powers = None
-    if not powers:
-        # Precompute some powers of D1, D2 to save computations later.
-        # We are going to perform O(a^1.5) squarings instead of O(a^2)
-        if a >= 16:
-            gap = ZZ(a).isqrt()
-            doubles = [(0, D1, D2)]
-            _D1, _D2 = D1, D2
-            for i in range(a-1):
-                _D1 = jacobian_double(h, _D1[0], _D1[1])
-                _D2 = jacobian_double(h, _D2[0], _D2[1])
-                doubles.append((i+1, _D1, _D2))
-            _, (G1, _), (G2, _) = doubles[a-1]
-            G1, G2 = G1.monic(), G2.monic()
-            next_powers = [doubles[a-2*gap], doubles[a-gap]]
-        else:
-            G1, _ = jacobian_iter_double(h, D1[0], D1[1], a-1)
-            G2, _ = jacobian_iter_double(h, D2[0], D2[1], a-1)
-    else:
-        (l, _D1, _D2) = powers[-1]
-        if a >= 16:
-            next_powers = powers if l < a-1 else powers[:-1]
-        G1, _ = jacobian_iter_double(h, _D1[0], _D1[1], a-1-l)
-        G2, _ = jacobian_iter_double(h, _D2[0], _D2[1], a-1-l)
-
-    # assert 2**a*D1 == 0
-    # assert 2**a*D2 == 0
-    G3, r3 = h.quo_rem(G1 * G2)
-    assert r3 == 0
-
+    h = G1 * G2 * G3
+    Rx = h.parent()
+    x = Rx.gen()
+    # G3, r3 = h.quo_rem(G1 * G2)
+    # assert r3 == 0, f"h: {h} \n G1: {G1} \n G2: {G2} \n r3: {r3}"
     delta = Matrix(G.padded_list(3) for G in (G1,G2,G3))
     # H1 = 1/det (G2[1]*G3[0] - G2[0]*G3[1])
     #        +2x (G2[2]*G3[0] - G3[2]*G2[0])
@@ -278,25 +237,24 @@ def FromJacToJac(h, D11, D12, D21, D22, a, powers=None):
     H3 = -delta[0][2]*x**2 + 2*delta[1][2]*x - delta[2][2]
 
     hnew = H1*H2*H3
-
-    # Now compute image points: Richelot isogeny is defined by the degree 2
     R = RichelotCorr(G1, G2, H1, H2, hnew)
 
-    imD1 = R.map(D1)
-    imD2 = R.map(D2)
-    if next_powers:
-        next_powers = [(l, R.map(_D1), R.map(_D2))
-            for l, _D1, _D2 in next_powers]
-    return hnew, imD1[0], imD1[1], imD2[0], imD2[1], R.map, next_powers
+    def isogeny(P):
+        return R.map(P)
+
+    return hnew, isogeny
 
 
 def FromJacToProd(G1, G2, G3):
     """
-    Construct the "split" isogeny from Jac(y^2 = G1*G2*G3)
-    to a product of elliptic curves.
+    Constructs a "split" isogeny from a Jacobian to a product of elliptic curves.
 
-    This computation is the same as Benjamin Smith
-    see 8.3 in http://iml.univ-mrs.fr/~kohel/phd/thesis_smith.pdf
+    This computation follows the method of Benjamin Smith.
+
+    :param G1: First quadratic factor of the curve polynomial.
+    :param G2: Second quadratic factor of the curve polynomial.
+    :param G3: Third quadratic factor of the curve polynomial.
+    :return: A tuple (isogeny_map, codomain_curves).
     """
     h = G1*G2*G3
     R = h.parent()
@@ -304,15 +262,11 @@ def FromJacToProd(G1, G2, G3):
     x = R.gen()
 
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
-    print(f"M: {M}")
     # Find homography
     u, v, w = M.right_kernel().gen()
-    print(f"u,v,w: {u}, {v}, {w}")
     d = u/2
     (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
-    # a = ad/d
     ### Added by Nic Swanson for Debugging
-    print(f"ad: {ad}, d: {d}, b: {b}")
     if ad == 0 and d == 0:
         a = 0
     else:
@@ -326,8 +280,8 @@ def FromJacToProd(G1, G2, G3):
     H10, H20, H30 = M * vector([d*d, b*d, b*b])
     assert G1((a*x+b)/(x+d))*(x+d)**2 == H11*x**2+H10
 
-    h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
-    H2 = HyperellipticCurve(h2)
+    # h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
+    # H2 = HyperellipticCurve(h2)
 
     p1 = (H11*x+H10)*(H21*x+H20)*(H31*x+H30)
     p2 = (H11+H10*x)*(H21+H20*x)*(H31+H30*x)
@@ -379,11 +333,7 @@ def FromJacToProd(G1, G2, G3):
         if v0.is_zero() and s.is_zero():
             E1_image = E1(0)
         else:
-            if v0.is_zero():
-                V1 = v1 / s * (x + p)
-            else:
-                V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
-
+            V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
             V1 = V1 % U1
             U1red = (p1 - V1**2) // U1
             xP1 = -U1red[0] / U1red[1]
@@ -422,37 +372,4 @@ def FromJacToProd(G1, G2, G3):
 
         return E1_image, E2_image
 
-    return isogeny, (E1, E2)
-
-def Does22ChainSplit(C, E, P_c, Q_c, P, Q, a):
-    """
-    Returns None if the chain does not split
-    or a tuple (chain of isogenies, codomain (E1, E2))
-    """
-    chain = []
-    # gluing step
-    h, D11, D12, D21, D22, f = FromProdToJac(C, E, P_c, Q_c, P, Q, a)
-    chain.append(f)
-    next_powers = None
-    # print(f"order 2^{a-1} on hyp curve ...")
-    for i in range(1,a-2+1):
-        h, D11, D12, D21, D22, f, next_powers = FromJacToJac(
-            h, D11, D12, D21, D22, a-i, powers=next_powers)
-        chain.append(f)
-
-    # now we are left with a quadratic splitting: is it singular?
-    G1 = D11
-    G2 = D21
-    G3, r3 = h.quo_rem(G1 * G2)
-    assert r3 == 0
-
-    delta = Matrix(G.padded_list(3) for G in (G1,G2,G3))
-    if delta.determinant():
-        # Determinant is non-zero, no splitting
-        return None
-
-    # Splitting found!
-    # Finish chain
-    f, codomain = FromJacToProd(G1, G2, G3)
-    chain.append(f)
-    return chain, codomain
+    return (E1, E2), isogeny

@@ -5,7 +5,7 @@ from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorp
 
 from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from dependencies.Theta_SageMath.utilities.supersingular import torsion_basis, torsion_basis_with_pairing
-from richelot_products import FromProdToJac
+from richelot_jacobians import FromProdToJac
 
 
 # Functions to generate products of supersingular elliptic curves
@@ -177,7 +177,7 @@ def get_isogeny_from_product_two_kernel(kernel):
             [a3*b3, a3, b3]])
 
         if M.determinant() != 0:
-            h, _, _, _, _, isogeny = FromProdToJac(E1, E2, P2_1, Q2_1, P2_2, Q2_2, 1)
+            h, isogeny = FromProdToJac(kernel[0], kernel[1])
             return (h, isogeny)
 
         E1 = kernel[0][0].curve()
@@ -188,7 +188,7 @@ def get_isogeny_from_product_two_kernel(kernel):
         Psi_2 = WeierstrassIsomorphism(E2, (1, -1, 0, 0))
         E2_w = Psi_2.codomain()
 
-        h, _, _, _, _, isogeny = FromProdToJac(E1_w, E2_w, Psi_1(P2_1), Psi_1(Q2_1), Psi_2(P2_2), Psi_2(Q2_2), 1)
+        h, isogeny = FromProdToJac(CouplePoint(Psi_1(P2_1), Psi_2(P2_2)), CouplePoint(Psi_1(Q2_1), Psi_2(Q2_2)))
         def isogeny_wrapped(cp_pt: CouplePoint):
             P, Q = cp_pt
             P = Psi_1(P)

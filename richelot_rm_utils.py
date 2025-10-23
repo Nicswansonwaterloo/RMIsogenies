@@ -111,7 +111,6 @@ class RMVertex:
         return kernels, subspaces
 
     def get_neighbor(self, codomain, phi, phi_subspace):
-        print(f"phi: \n{phi}\n")
         W = phi_subspace
         W_perp = W.kernel().basis_matrix().transpose()
 
@@ -120,11 +119,10 @@ class RMVertex:
         C_inv = C.inverse()
 
         new_torsion_gens = [self._vector_to_point(col, two_torsion=False) for col in C.columns()]
-        for i, P in enumerate(new_torsion_gens):
-            P_image = phi(P) if i < 2 else phi(2 * P)
-            print(type(P_image))
-            print(2 * P_image)
-            new_torsion_gens[i] = P_image
+        new_torsion_gens[0] = phi(new_torsion_gens[0])
+        new_torsion_gens[1] = phi(new_torsion_gens[1])
+        new_torsion_gens[2] = phi(2 * new_torsion_gens[2])
+        new_torsion_gens[3] = phi(2 * new_torsion_gens[3])
 
         # print(f"New torsion generators:\n{new_torsion_gens}")
         # print(f"W:\n{W}")
@@ -134,10 +132,10 @@ class RMVertex:
         #     print(len(should_be_zero[0]))
         # print(should_be_zero[0])
 
-        # should_be_zero = [Integer(2**(self.r - 1)) * P for P in new_torsion_gens]
-        # two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]        
-        # assert all(P == 0 for P in should_be_zero), f"Should be zero check failed:\n {should_be_zero}"
-        # assert all(P != 0 for P in two_torsion_orders), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
+        should_be_zero = [Integer(2**(self.r - 1)) * P for P in new_torsion_gens]
+        two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]        
+        assert all(P == 0 for P in should_be_zero), f"Should be zero check failed:\n {should_be_zero}"
+        assert all(P != 0 for P in two_torsion_orders), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
 
         # Change to be over 2^(r - 1)
         C_lifted = C.change_ring(Integers(2**(self.r - 1)))

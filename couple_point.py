@@ -1,5 +1,4 @@
 from sage.all import ZZ
-from ..utilities.discrete_log import weil_pairing_pari
 
 
 class CouplePoint:
@@ -102,8 +101,9 @@ class CouplePoint:
         P1, P2 = self.points()
         Q1, Q2 = other.points()
 
-        ePQ1 = weil_pairing_pari(P1, Q1, n)
-        ePQ2 = weil_pairing_pari(P2, Q2, n)
 
+        ePQ1 = P1.weil_pairing(Q1, n)
+        ePQ2 = P2.weil_pairing(Q2, n)
+        
         Fp2 = P1.base_ring()
         return Fp2(ePQ1 * ePQ2)

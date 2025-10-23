@@ -20,6 +20,7 @@ initial_vertex = RMVertex((E1, E2), e, torsion_generators, golden_ratio_action_o
 m = [randint(0, 4) for _ in range(e - 1)]
 current_vertex = initial_vertex
 for i in range(len(m)):
+    print(f"Step {i+1}/{len(m)}: current vertex is \n {current_vertex}\n")
     kernels, subspaces = current_vertex.generate_RM_kernels()
     assert len(kernels) == 5, f"Expected 5 kernels, got {len(kernels)}"
     phi_kernel = kernels[m[i]]
@@ -27,4 +28,5 @@ for i in range(len(m)):
     av, phi = get_computable_isogeny(current_vertex, phi_kernel)
     next_vertex = current_vertex.get_neighbor(av, phi, phi_subspace)
     current_vertex = next_vertex
+    
 
