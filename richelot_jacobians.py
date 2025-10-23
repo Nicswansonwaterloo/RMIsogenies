@@ -13,7 +13,7 @@ def is_jac_kernel_split(h, kernel_generators):
     G1 = D11
     G2 = D21
     G3, r3 = h.quo_rem(G1 * G2)
-    assert r3 == 0, f"h: {h} \n G1: {G1} \n G2: {G2} \n r3: {r3}"
+    assert r3 == 0, f"h roots: {h.roots()}, \n G1 roots: {G1.roots()}, \n G2 roots: {G2.roots()}\n G3 roots: {G3.roots()}"
 
     delta = Matrix(G.padded_list(3) for G in (G1,G2,G3))
     if delta.determinant():
@@ -243,7 +243,10 @@ def FromJacToJac(G1, G2, G3):
     R = RichelotCorr(G1, G2, H1, H2, hnew)
 
     def isogeny(P):
-        return R.map(P)
+        output = R.map(P)
+        # output must be a divisor on the new Jacobian
+        assert  (hnew - Rx(output[1])**2) % Rx(output[0]) == 0
+        return output
 
     return hnew, isogeny
 

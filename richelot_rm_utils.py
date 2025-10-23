@@ -114,13 +114,15 @@ class RMVertex:
         W = phi_subspace
         id_2 = identity_matrix(GF(2), 2)
         A = W.transpose() * self.weil_pairing
-        V = A.solve_right(id_2)
-        P = V.transpose() * self.weil_pairing * V
-        c = P[0,1]
-        A_corr = matrix(GF(2), [[0, c], [0, 0]])
-        W_perp = V + W * A_corr # The Lagrangian complement of W
+        W_perp = A.solve_right(id_2) # The Lagrangian complement of W
+        # V = A.solve_right(id_2)
+        # print(f"V:\n{V}")
+        # P = V.transpose() * self.weil_pairing * V
+        # print(f"P:\n{P}")
+        # c = P[0,1]
+        # A_corr = matrix(GF(2), [[0, c], [0, 0]])
+        # W_perp = V + W * A_corr # Possible correction? to ensure W_perp is Lagrangian
 
-        
         C = W.augment(W_perp)
         assert C.is_invertible(), f"{C} \n is not invertible."
         C_inv = C.inverse()
@@ -131,13 +133,8 @@ class RMVertex:
         new_torsion_gens[2] = phi(2 * new_torsion_gens[2])
         new_torsion_gens[3] = phi(2 * new_torsion_gens[3])
 
-        # print(f"New torsion generators:\n{new_torsion_gens}")
-        # print(f"W:\n{W}")
-        # print(f"W_perp:\n{W_perp}")
-        # print(type(should_be_zero[0]))
-        # if isinstance(should_be_zero[0], tuple):
-        #     print(len(should_be_zero[0]))
-        # print(should_be_zero[0])
+        print(f"W:\n{W}")
+        print(f"W_perp:\n{W_perp}")
 
         should_be_zero = [Integer(2**(self.r - 1)) * P for P in new_torsion_gens]
         two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]        
