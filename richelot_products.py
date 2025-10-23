@@ -3,7 +3,7 @@ from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 
-from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from couple_point import CouplePoint
 from dependencies.Theta_SageMath.utilities.supersingular import torsion_basis, torsion_basis_with_pairing
 from richelot_jacobians import FromProdToJac
 

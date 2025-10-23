@@ -1,10 +1,10 @@
 from sage.all import is_prime, GF, Integers, identity_matrix, vector, HyperellipticCurve, set_random_seed, randint
-from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from couple_point import CouplePoint
 from richelot_products import get_arbitrary_square_example
 from richelot_rm_utils import RMVertex, get_computable_isogeny, golden_ratio_action_on_symplectic_torsion
 
 ### Fixed Parameters ###
-set_random_seed(31)
+set_random_seed(32)
 e = 11
 f = 3
 p = 2**e * f - 1
@@ -23,10 +23,14 @@ for i in range(len(m)):
     print(f"Step {i+1}/{len(m)}: current vertex is \n {current_vertex}\n")
     kernels, subspaces = current_vertex.generate_RM_kernels()
     assert len(kernels) == 5, f"Expected 5 kernels, got {len(kernels)}"
+
     phi_kernel = kernels[m[i]]
     phi_subspace = subspaces[m[i]]
     av, phi = get_computable_isogeny(current_vertex, phi_kernel)
+    assert phi(phi_kernel[0]) == 0 and phi(phi_kernel[1]) == 0
+
     next_vertex = current_vertex.get_neighbor(av, phi, phi_subspace)
+
     current_vertex = next_vertex
     
 

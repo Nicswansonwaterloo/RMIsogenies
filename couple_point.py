@@ -1,4 +1,4 @@
-from sage.all import ZZ
+from sage.all import ZZ, lcm
 
 
 class CouplePoint:
@@ -25,7 +25,7 @@ class CouplePoint:
         return self.P1, self.P2
 
     def order(self):
-        return (self.P1.order(), self.P2.order())
+        return lcm(self.P1.order(), self.P2.order())
 
     def double(self):
         """
@@ -63,6 +63,8 @@ class CouplePoint:
             raise IndexError("Index {} is out of range.".format(i))
 
     def __eq__(self, other):
+        if other == 0:
+            return self.P1 == 0 and self.P2 == 0
         return self.P1 == other.P1 and self.P2 == other.P2
 
     def __add__(self, other):

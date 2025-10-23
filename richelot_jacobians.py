@@ -47,7 +47,7 @@ def FromProdToJac(P, Q):
              (D11, D12) and (D21, D22) are image points, and isogeny is the map.
     """
 
-    assert P.order() == 2 and Q.order() == 2, "Points must be of order 2."
+    assert P.order() == 2 and Q.order() == 2, "Points must be of order 2. Got orders: {}, {}".format(P.order(), Q.order())
 
     P_c, P_e = P
     Q_c, Q_e = Q
@@ -165,6 +165,9 @@ class RichelotCorr:
     def map(self, P):
         "Computes (non-monic) Mumford coordinates for the image of P"
         U, V = P
+        if U == self.G1 or U == self.G2:
+            return self.jacobian(0)
+        
         if not U[2].is_one():
             U = U / U[2]
         V = V  % U

@@ -1,7 +1,7 @@
-from sage.all import Matrix, Integers, GF, VectorSpace, Integer
+from sage.all import Matrix, Integers, GF, VectorSpace, Integer, matrix, identity_matrix
 
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
-from dependencies.Theta_SageMath.theta_structures.couple_point import CouplePoint
+from couple_point import CouplePoint
 from richelot_products import get_isogeny_from_product_two_kernel
 from richelot_jacobians import get_isogeny_from_jacobian_two_kernel
 
@@ -112,10 +112,17 @@ class RMVertex:
 
     def get_neighbor(self, codomain, phi, phi_subspace):
         W = phi_subspace
-        W_perp = W.kernel().basis_matrix().transpose()
+        id_2 = identity_matrix(GF(2), 2)
+        A = W.transpose() * self.weil_pairing
+        V = A.solve_right(id_2)
+        P = V.transpose() * self.weil_pairing * V
+        c = P[0,1]
+        A_corr = matrix(GF(2), [[0, c], [0, 0]])
+        W_perp = V + W * A_corr # The Lagrangian complement of W
 
-        C = W.augment(W_perp) # Change of basis matrix
-        assert C.is_invertible(), "Change of basis matrix is not invertible."
+        
+        C = W.augment(W_perp)
+        assert C.is_invertible(), f"{C} \n is not invertible."
         C_inv = C.inverse()
 
         new_torsion_gens = [self._vector_to_point(col, two_torsion=False) for col in C.columns()]
