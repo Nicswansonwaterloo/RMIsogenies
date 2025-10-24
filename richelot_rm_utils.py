@@ -51,18 +51,24 @@ class RMVertex:
 
 
     def _compute_weil_pairing(self):
-        if self.is_jacobian():
-            raise NotImplementedError("Weil pairing computation for Jacobians is not yet implemented.")
-        # Placeholder for actual Weil pairing computation
         Me = Matrix(GF(2), 4, 4)
         for i, P in enumerate(self.two_torsion_basis):
             for j, Q in enumerate(self.two_torsion_basis):
-                entry = P.weil_pairing(Q, 2)
+                if self.is_jacobian():
+                    if i == j:
+                        entry = 1
+                    else:
+                        G1 = P[0]
+                        G2 = Q[0]
+                        entry = 1 if G1.gcd(G2) == 1 else -1
+                else:
+                    entry = P.weil_pairing(Q, 2)
                 # Apply a reduction map mu_{2^r} -> GF(2)
                 if entry == 1:
                     Me[i, j] = 0
                 else:
                     Me[i, j] = 1
+        print(f"Weil pairing matrix:\n{Me}")
         return Me
 
     def is_product(self):
@@ -98,6 +104,7 @@ class RMVertex:
         maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
         assert len(maximal_isotropic_subspaces) == 15, f"Expected 15 maximal isotropic subspaces, got {len(maximal_isotropic_subspaces)}"
         Mphi = self.rm_action.change_ring(GF(2))
+        print(f"Mphi mod 2:\n{Mphi}")
         kernels = []
         subspaces = []
         for subspace in maximal_isotropic_subspaces:
@@ -122,6 +129,7 @@ class RMVertex:
         # c = P[0,1]
         # A_corr = matrix(GF(2), [[0, c], [0, 0]])
         # W_perp = V + W * A_corr # Possible correction? to ensure W_perp is Lagrangian
+        assert W_perp.transpose() * self.weil_pairing * W_perp == 0, f"W_perp is not isotropic:\n {W_perp.transpose() * self.weil_pairing * W_perp }"
 
         C = W.augment(W_perp)
         assert C.is_invertible(), f"{C} \n is not invertible."
@@ -142,12 +150,14 @@ class RMVertex:
         assert all(P != 0 for P in two_torsion_orders), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
 
         # Change to be over 2^(r - 1)
-        C_lifted = C.change_ring(Integers(2**(self.r - 1)))
-        C_inv_lifted = C_inv.change_ring(Integers(2**(self.r - 1)))
-        reduced_rm_action = self.rm_action.change_ring(Integers(2**(self.r - 1)))
+        C_lifted = C.change_ring(Integers(2**(self.r)))
+        C_inv_lifted = C_inv.change_ring(Integers(2**(self.r)))
+        reduced_rm_action = self.rm_action.change_ring(Integers(2**(self.r)))
 
         M_phi_prime = C_inv_lifted * reduced_rm_action * C_lifted
-        M_e_prime = C.transpose() * self.weil_pairing * C
+        M_phi_prime = M_phi_prime.change_ring(Integers(2**(self.r - 1)))
+        # print(f"M_phi_prime:\n{M_phi_prime}")
+        # M_e_prime = C.transpose() * self.weil_pairing * C
 
-        return RMVertex(codomain, self.r - 1, new_torsion_gens, M_phi_prime, M_e_prime)
+        return RMVertex(codomain, self.r - 1, new_torsion_gens, M_phi_prime)
                 
