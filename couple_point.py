@@ -64,7 +64,8 @@ class CouplePoint:
 
     def __eq__(self, other):
         if other == 0:
-            return self.P1 == 0 and self.P2 == 0
+            E1, E2 = self.parent()
+            return self.P1 == E1(0) and self.P2 == E2(0)
         return self.P1 == other.P1 and self.P2 == other.P2
 
     def __add__(self, other):

@@ -69,7 +69,6 @@ class RMVertex:
                     Me[i, j] = 0
                 else:
                     Me[i, j] = 1
-        print(f"Weil pairing matrix:\n{Me}")
         return Me
 
     def is_product(self):
@@ -105,7 +104,6 @@ class RMVertex:
         maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
         assert len(maximal_isotropic_subspaces) == 15, f"Expected 15 maximal isotropic subspaces, got {len(maximal_isotropic_subspaces)}"
         Mphi = self.rm_action.change_ring(GF(2))
-        print(f"Mphi mod 2:\n{Mphi}")
         kernels = []
         subspaces = []
         for subspace in maximal_isotropic_subspaces:
@@ -124,17 +122,13 @@ class RMVertex:
         A = W.transpose() * self.weil_pairing
         # W_perp = A.solve_right(id_2) # The Lagrangian complement of W
         V = A.solve_right(id_2)
-        print(f"V:\n{V}")
         P = V.transpose() * self.weil_pairing * V
-        print(f"P:\n{P}")
         c = P[0,1]
         A_corr = matrix(GF(2), [[0, c], [0, 0]])
-        W_perp = V + W * A_corr # Possible correction? to ensure W_perp is Lagrangian
+        W_perp = V + W * A_corr # Possible correction to ensure W_perp is Lagrangian
 
         # Check that 2 torsion basis is well formed.
         assert W_perp.transpose() * self.weil_pairing * W_perp == 0, f"W_perp is not isotropic:\n {W_perp.transpose() * self.weil_pairing * W_perp }"
-        print(f"W:\n{W}")
-        print(f"W_perp:\n{W_perp}")
 
         # Form the change of basis matrix C from the old torsion basis to the new one
         C = W.augment(W_perp)

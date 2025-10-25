@@ -4,7 +4,6 @@ from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 
 from couple_point import CouplePoint
-from dependencies.Theta_SageMath.utilities.supersingular import torsion_basis, torsion_basis_with_pairing
 from richelot_jacobians import FromProdToJac
 
 

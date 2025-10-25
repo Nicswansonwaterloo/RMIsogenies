@@ -1,5 +1,7 @@
 from sage.all import Matrix, GF, PolynomialRing, EllipticCurve, HyperellipticCurve, vector, ZZ
 
+from couple_point import CouplePoint
+
 def is_jac_kernel_split(h, kernel_generators):
     """
     Checks if the kernel of a Jacobian isogeny splits.
@@ -58,7 +60,7 @@ def FromProdToJac(P, Q):
 
     a1, a2, a3 = P_c[0], Q_c[0], (P_c + Q_c)[0]
     b1, b2, b3 = P_e[0], Q_e[0], (P_e + Q_e)[0]
-
+    print(f"a1: {a1}, a2: {a2}, a3: {a3}\n b1: {b1}, b2: {b2}, b3: {b3}")
     # Compute coefficients
     M = Matrix(Fp2, [
         [a1*b1, a1, b1],
@@ -66,6 +68,7 @@ def FromProdToJac(P, Q):
         [a3*b3, a3, b3]])
     R, S, T = M.inverse() * vector(Fp2, [1,1,1])
     RD = R * M.determinant()
+    print(f"R: {R}, S: {S}, T: {T}, RD: {RD}")
     da = (a1 - a2)*(a2 - a3)*(a3 - a1)
     db = (b1 - b2)*(b2 - b3)*(b3 - b1)
 
@@ -161,15 +164,17 @@ class RichelotCorr:
         self.hnew = hnew
         self.jacobian = HyperellipticCurve(hnew).jacobian()
         self.x = hnew.parent().gen()
+        print(f"G1 roots: {G1.roots()},\n G2 roots: {G2.roots()}\n H1 roots: {H1.roots()}, H2 roots: {H2.roots()}")
 
     def map(self, P):
         "Computes (non-monic) Mumford coordinates for the image of P"
         U, V = P
+        if not U[2].is_one():
+            U = U / U[2]
+    
         if U == self.G1 or U == self.G2:
             return self.jacobian(0)
         
-        if not U[2].is_one():
-            U = U / U[2]
         V = V  % U
         # Sum and product of (xa, xb)
         s, p = -U[1], U[0]
@@ -252,39 +257,34 @@ def FromJacToJac(G1, G2, G3):
 
 
 def FromJacToProd(G1, G2, G3):
-    """
-    Constructs a "split" isogeny from a Jacobian to a product of elliptic curves.
-
-    This computation follows the method of Benjamin Smith.
-
-    :param G1: First quadratic factor of the curve polynomial.
-    :param G2: Second quadratic factor of the curve polynomial.
-    :param G3: Third quadratic factor of the curve polynomial.
-    :return: A tuple (isogeny_map, codomain_curves).
-    """
+    print(f"---------------- FromJacToProd ----------------")
     h = G1*G2*G3
     R = h.parent()
     Fp2 = R.base()
     x = R.gen()
+    print(f"h: {h}")
+    print(f"G1: {G1}, G2: {G2}, G3: {G3}")
+    print(f"G1 roots: {G1.roots()},\n G2 roots: {G2.roots()},\n G3 roots: {G3.roots()}")
 
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
     # Find homography
+    need_homography = True
     u, v, w = M.right_kernel().gen()
-    d = u/2
-    (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
-    ### Added by Nic Swanson for Debugging
-    if ad == 0 and d == 0:
-        a = 0
+    if u.is_zero():
+        H11, H21, H31 = M.column(2)
+        H10, H20, H30 = M.column(0)
+        need_homography = False
     else:
-        a = ad/d
-    ###
+        d = u/2
+        (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
+        a = ad / d
 
-    # Apply transform G(x) -> G((a*x+b)/(x+d))*(x+d)^2
-    # The coefficients of x^2 are M * (1, a, a^2)
-    # The coefficients of 1 are M * (d^2, b*d, b^2)
-    H11, H21, H31 = M * vector([1, a, a*a])
-    H10, H20, H30 = M * vector([d*d, b*d, b*b])
-    assert G1((a*x+b)/(x+d))*(x+d)**2 == H11*x**2+H10
+        # Apply transform G(x) -> G((a*x+b)/(x+d))*(x+d)^2
+        # The coefficients of x^2 are M * (1, a, a^2)
+        # The coefficients of 1 are M * (d^2, b*d, b^2)
+        H11, H21, H31 = M * vector([1, a, a*a])
+        H10, H20, H30 = M * vector([d*d, b*d, b*b])
+        assert G1((a*x+b)/(x+d))*(x+d)**2 == H11*x**2+H10
 
     # h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
     # H2 = HyperellipticCurve(h2)
@@ -315,11 +315,15 @@ def FromJacToProd(G1, G2, G3):
         # on Mumford coordinates
         U, V = D
         print(f"U: {U}, V: {V}")
-        # apply homography
+        # apply homography (if applied before)
         # y = v1 x + v0 =>
-        U_ = U[0] * (x+d)**2 + U[1]*(a*x+b)*(x+d) + U[2]*(a*x+b)**2
-        V_ = V[0] * (x+d)**3 + V[1]*(a*x+b)*(x+d)**2
-        V_ = V_ % U_
+        if need_homography:
+            U_ = U[0] * (x+d)**2 + U[1]*(a*x+b)*(x+d) + U[2]*(a*x+b)**2
+            V_ = V[0] * (x+d)**3 + V[1]*(a*x+b)*(x+d)**2
+            V_ = V_ % U_
+        else:
+            U_, V_ = U, V
+            
         print(f"U_: {U_}, V_: {V_}")
         v1, v0 = V_[1], V_[0]
         # prepare symmetric functions
@@ -339,7 +343,10 @@ def FromJacToProd(G1, G2, G3):
         if v0.is_zero() and s.is_zero():
             E1_image = E1(0)
         else:
-            V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+            if v0.is_zero():
+                V1 = (v1 / s) * (x + p)
+            else:
+                V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
             V1 = V1 % U1
             U1red = (p1 - V1**2) // U1
             xP1 = -U1red[0] / U1red[1]
@@ -376,6 +383,6 @@ def FromJacToProd(G1, G2, G3):
             assert yP2**2 == p2(xP2)
             E2_image = E2(morphE2(xP2, yP2))
 
-        return E1_image, E2_image
+        return CouplePoint(E1_image, E2_image)
 
     return (E1, E2), isogeny
