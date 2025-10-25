@@ -1,3 +1,4 @@
+import copy
 from sage.all import Matrix, Integers, GF, VectorSpace, Integer, matrix, identity_matrix
 
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
@@ -121,43 +122,61 @@ class RMVertex:
         W = phi_subspace
         id_2 = identity_matrix(GF(2), 2)
         A = W.transpose() * self.weil_pairing
-        W_perp = A.solve_right(id_2) # The Lagrangian complement of W
-        # V = A.solve_right(id_2)
-        # print(f"V:\n{V}")
-        # P = V.transpose() * self.weil_pairing * V
-        # print(f"P:\n{P}")
-        # c = P[0,1]
-        # A_corr = matrix(GF(2), [[0, c], [0, 0]])
-        # W_perp = V + W * A_corr # Possible correction? to ensure W_perp is Lagrangian
-        assert W_perp.transpose() * self.weil_pairing * W_perp == 0, f"W_perp is not isotropic:\n {W_perp.transpose() * self.weil_pairing * W_perp }"
+        # W_perp = A.solve_right(id_2) # The Lagrangian complement of W
+        V = A.solve_right(id_2)
+        print(f"V:\n{V}")
+        P = V.transpose() * self.weil_pairing * V
+        print(f"P:\n{P}")
+        c = P[0,1]
+        A_corr = matrix(GF(2), [[0, c], [0, 0]])
+        W_perp = V + W * A_corr # Possible correction? to ensure W_perp is Lagrangian
 
+        # Check that 2 torsion basis is well formed.
+        assert W_perp.transpose() * self.weil_pairing * W_perp == 0, f"W_perp is not isotropic:\n {W_perp.transpose() * self.weil_pairing * W_perp }"
+        print(f"W:\n{W}")
+        print(f"W_perp:\n{W_perp}")
+
+        # Form the change of basis matrix C from the old torsion basis to the new one
         C = W.augment(W_perp)
         assert C.is_invertible(), f"{C} \n is not invertible."
         C_inv = C.inverse()
 
+        # Compute the new torsion generators on the domain and codomain
         new_torsion_gens = [self._vector_to_point(col, two_torsion=False) for col in C.columns()]
-        new_torsion_gens[0] = phi(new_torsion_gens[0])
-        new_torsion_gens[1] = phi(new_torsion_gens[1])
-        new_torsion_gens[2] = phi(2 * new_torsion_gens[2])
-        new_torsion_gens[3] = phi(2 * new_torsion_gens[3])
+        codomain_torsion_gens = [phi(new_torsion_gens[0]),phi(new_torsion_gens[1]),phi(2 * new_torsion_gens[2]),phi(2 * new_torsion_gens[3])]
 
-        print(f"W:\n{W}")
-        print(f"W_perp:\n{W_perp}")
-
-        should_be_zero = [Integer(2**(self.r - 1)) * P for P in new_torsion_gens]
-        two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]        
+        # Check that the new torsion generators have correct orders
+        should_be_zero = [Integer(2**(self.r - 1)) * P for P in codomain_torsion_gens]
+        two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in codomain_torsion_gens]        
         assert all(P == 0 for P in should_be_zero), f"Should be zero check failed:\n {should_be_zero}"
         assert all(P != 0 for P in two_torsion_orders), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
 
-        # Change to be over 2^(r - 1)
-        C_lifted = C.change_ring(Integers(2**(self.r)))
-        C_inv_lifted = C_inv.change_ring(Integers(2**(self.r)))
-        reduced_rm_action = self.rm_action.change_ring(Integers(2**(self.r)))
+        # Compute the RM action on the new_torsion_gens basis
+        Mphi = self.rm_action.change_ring(GF(2))
+        rm_action_on_C = C_inv * Mphi * C # This behaves as expected mod 2
 
-        M_phi_prime = C_inv_lifted * reduced_rm_action * C_lifted
-        M_phi_prime = M_phi_prime.change_ring(Integers(2**(self.r - 1)))
-        # print(f"M_phi_prime:\n{M_phi_prime}")
-        # M_e_prime = C.transpose() * self.weil_pairing * C
+        # This can probabily be done lifting to 2** r or 2**(r-1)
+        C_lifted = C.change_ring(Integers())
+        rm_action_lifted = self.rm_action.change_ring(Integers())
+        assert C_lifted.is_invertible(), f"C_lifted is not invertible:\n {C_lifted}"
+        C_inv_lifted = C_lifted.inverse()
+        rm_action_on_C_lifted = C_inv_lifted * rm_action_lifted * C_lifted # Have checked to be correctly representing the action of RM on the changed basis on the domain.
 
-        return RMVertex(codomain, self.r - 1, new_torsion_gens, M_phi_prime)
+        # Compute the RM action on the codomain with respect to codomain_torsion_gens
+        assert rm_action_on_C_lifted[2:4, 0:2] % 2 == 0, f"lower-left block not even:\n{rm_action_on_C}"
+        rm_action_prime = copy.deepcopy(rm_action_on_C_lifted)
+        rm_action_prime[0:2, 2:4] *= 2; rm_action_prime[2:4, 0:2] /= 2
+        rm_action_prime = rm_action_prime.change_ring(Integers(2**(self.r - 1)))
+
+        next_vertex = RMVertex(codomain, self.r - 1, codomain_torsion_gens, rm_action_prime)
+
+        # Check that rm' \circ phi = phi \circ rm on the reduced generators of 2^r
+        # for i, rm_Pi_col in enumerate(rm_action_on_C):
+        #     rm_Pi = self._vector_to_point(rm_Pi_col, two_torsion=False)
+        #     phi_rm_Pi = phi(rm_Pi)
+
+        #     rm_Ti_prime = next_vertex._vector_to_point(rm_action_prime.column(i), two_torsion=False)
+        #     assert phi_rm_Pi == rm_Ti_prime, f"RM action does not commute with isogeny on generator {i}:\n phi(rm(P_{i})) = \n {phi_rm_Pi}\n rm(T_{i}') = \n{rm_Ti_prime}"
+
+        return next_vertex
                 

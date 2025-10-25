@@ -4,7 +4,8 @@ from richelot_products import get_arbitrary_square_example
 from richelot_rm_utils import RMVertex, get_computable_isogeny, golden_ratio_action_on_symplectic_torsion
 
 ### Fixed Parameters ###
-set_random_seed(32)
+set_random_seed(31)
+# e = 43
 e = 11
 f = 3
 p = 2**e * f - 1
