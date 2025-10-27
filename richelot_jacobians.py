@@ -60,6 +60,9 @@ def FromProdToJac(P, Q):
 
     a1, a2, a3 = P_c[0], Q_c[0], (P_c + Q_c)[0]
     b1, b2, b3 = P_e[0], Q_e[0], (P_e + Q_e)[0]
+    print(f"C: {C}")
+    print(f"P_c: {P_c}, P_e: {P_e}")
+    print(f"Q_c: {Q_c}, Q_e: {Q_e}")
     print(f"a1: {a1}, a2: {a2}, a3: {a3}\n b1: {b1}, b2: {b2}, b3: {b3}")
     # Compute coefficients
     M = Matrix(Fp2, [
@@ -255,29 +258,29 @@ def FromJacToJac(G1, G2, G3):
 
     return hnew, isogeny
 
-
 def FromJacToProd(G1, G2, G3):
-    print(f"---------------- FromJacToProd ----------------")
+    """
+    Construct the "split" isogeny from Jac(y^2 = G1*G2*G3)
+    to a product of elliptic curves.
+    """
     h = G1*G2*G3
     R = h.parent()
     Fp2 = R.base()
     x = R.gen()
-    print(f"h: {h}")
-    print(f"G1: {G1}, G2: {G2}, G3: {G3}")
-    print(f"G1 roots: {G1.roots()},\n G2 roots: {G2.roots()},\n G3 roots: {G3.roots()}")
-
+    print(f"---------------- FromJacToProd ----------------")
+    print(f" G's: G1: {G1}, G2: {G2}, G3: {G3}")
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
-    # Find homography
-    need_homography = True
-    u, v, w = M.right_kernel().gen()
-    if u.is_zero():
+    homography_needed = not M.column(1).is_zero()
+    if not homography_needed:
+        # No homography needed
         H11, H21, H31 = M.column(2)
         H10, H20, H30 = M.column(0)
-        need_homography = False
     else:
+        # Find homography
+        u, v, w = M.right_kernel().gen()
         d = u/2
         (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
-        a = ad / d
+        a = ad/d
 
         # Apply transform G(x) -> G((a*x+b)/(x+d))*(x+d)^2
         # The coefficients of x^2 are M * (1, a, a^2)
@@ -286,8 +289,8 @@ def FromJacToProd(G1, G2, G3):
         H10, H20, H30 = M * vector([d*d, b*d, b*b])
         assert G1((a*x+b)/(x+d))*(x+d)**2 == H11*x**2+H10
 
-    # h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
-    # H2 = HyperellipticCurve(h2)
+    h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
+    H2 = HyperellipticCurve(h2)
 
     p1 = (H11*x+H10)*(H21*x+H20)*(H31*x+H30)
     p2 = (H11+H10*x)*(H21+H20*x)*(H31+H30*x)
@@ -310,72 +313,94 @@ def FromJacToProd(G1, G2, G3):
     #   or H2->E2:(x,y) => (1/x^2,y/x^3)
 
     def isogeny(D):
-        # HyperellipticCurve(h).jacobian()(D)
+        HyperellipticCurve(h).jacobian()([D[0], D[1]])
         # To map a divisor, perform the change of coordinates
         # on Mumford coordinates
-        U, V = D
-        print(f"U: {U}, V: {V}")
-        # apply homography (if applied before)
-        # y = v1 x + v0 =>
-        if need_homography:
+        U, V = D # Lets call the roots x_a, x_b
+        if homography_needed:
+            # apply homography
+            # y = v1 x + v0 =>
             U_ = U[0] * (x+d)**2 + U[1]*(a*x+b)*(x+d) + U[2]*(a*x+b)**2
             V_ = V[0] * (x+d)**3 + V[1]*(a*x+b)*(x+d)**2
             V_ = V_ % U_
         else:
             U_, V_ = U, V
-            
-        print(f"U_: {U_}, V_: {V_}")
+
+        # Note that y_a = v1 x_a + v0, y_b = v1 x_b + v0 are the y-coordinates corresponding to x_a, x_b
         v1, v0 = V_[1], V_[0]
+        print(f"v1: {v1}, v0: {v0}")
         # prepare symmetric functions
-        s = - U_[1] / U_[2] # s = x1 + x2
-        p = U_[0] / U_[2] # p = x1 * x2
-        print(f"s: {s}, p: {p}")
-        # compute Mumford coordinates on E1
-        # Points x1, x2 map to x1^2, x2^2
-        U1 = x**2 - (s*s - 2*p)*x + p**2
-        print(f"U1: {U1}")
-        print(f"U1 roots: {U1.roots()}")
-        # y = v1 x + v0 becomes (y - v0)^2 = v1^2 x^2
-        # so 2v0 y-v0^2 = p1 - v1^2 xH^2 = p1 - v1^2 xE1
-        # V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
-        ### Added by Nic Swanson for Debugging
-        E1_image = None
-        if v0.is_zero() and s.is_zero():
-            E1_image = E1(0)
-        else:
+        s = - U_[1] / U_[2] # SUM of roots of U_: x_a + x_b
+        p = U_[0] / U_[2] # PRODUCT of roots of U_: x_a * x_b
+
+        assert p != 0 # nether x_a not x_b can be zero. Perhaps a change of coordinates is needed.
+
+        # For E1: x -> x^2 := z, and y -> y := w
+        # We need to compute the divisor on E1, corresponding to the sum of the image of (x_a, y_a) and (x_b, y_b), then sum it to get the image on E1.
+        if s.is_zero():
+            # This is the case where the divisor on E1 is the sum of two points with the same x-coordinate: x_a^2 = (-x_b)^2
             if v0.is_zero():
-                V1 = (v1 / s) * (x + p)
+                print("E1: Special case: s=0, v0=0")
+                # Then v0 = 0 <=> y_a = - y_b
+                E1_image = E1(0)
             else:
-                V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
-            V1 = V1 % U1
-            U1red = (p1 - V1**2) // U1
-            xP1 = -U1red[0] / U1red[1]
-            yP1 = V1(xP1)
+                print("E1: Special case: s=0, v1=0")
+                # Here y_a = y_b. This gives v1 x_a + v0 = v1 (-x_a) + v0 => 2 v1 x_a = 0 => v_1 = 0
+                # So we double the point (x_a^2, y_a) = (-p, v_0) on E1.
+                E1_image = 2 * E1(morphE1(-p, v0)) #How do figure out the sign of y_a? 
+        else:
+            U1 = x**2 - (s*s - 2*p)*x + p**2 # roots are x_a^2, x_b^2
+            if not v0.is_zero():
+                # The general case
+                V1 = (p1 - v1**2 * x + v0**2) / (2*v0) # V1(x_a^2) = w_a, V1(x_b^2) = w_b where w_a^2 = p1(x_a^2)
+                V1 = V1 % U1 # Reduce to Mumford coordinates
+                U1red = (p1 - V1**2) // U1 # V1^2 - p1 have the roots x_a^2, x_b^2 BUT ALSO the extra root x_c. which simulateniously lives on E1, but also lies on the line through (x_a, y_a) and (x_b, y_b). Hence x_c is the x-coordinate of P_{x_a^2} + P_{x_b^2} on E1.
+                xP1 = -U1red[0] / U1red[1] # Here U1red is linear, and we are solving for the extra root x_c
+                yP1 = V1(xP1)
+            else:
+                print("E1: Special case when v0 = 0 and s != 0")
+                # Special case when v0 = 0
+                # Then p1 - v1^2 x = 0 at x_a^2, x_b^2 and the third root is immediately calculable
+                U1red = (p1 - v1**2 * x) // U1
+                xP1 = -U1red[0] / U1red[1]
+                # Now its a matter of finding V1(z) the line through (x_a^2, w_a) and (x_b^2, w_b) to recover the y-coordinate.
+                # The slope is (w_b - w_a) / (x_b^2 - x_a^2) = (v1 x_b - v1 x_a) / (x_b^2 - x_a^2) = v1 / (x_a + x_b) = v1 / s
+                yP1 = (v1 / s) * (xP1 + p)
+            
             assert yP1**2 == p1(xP1)
             E1_image = E1(morphE1(xP1, yP1))
-        ###
-        # Reduce Mumford coordinates to get a E1 point
-        
-        # Same for E2
-        # Points x1, x2 map to 1/x1^2, 1/x2^2
-        U2 = x**2 - (s*s-2*p)/p**2*x + 1/p**2
-        E2_image = None
-        if v1.is_zero() and s.is_zero():
-            E2_image = E2(0)
-        else: 
-            # yE = y1/x1^3, xE = 1/x1^2
-            # means yE = y1 x1 xE^2
-            # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
-            # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
-            V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
-            V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
-            # V21 * y = V20
-            _, V21inv, _ = V21.xgcd(U2)
+
+        # For E2: x -> 1/x^2 := z AND y -> y/x^3 := w
+        if s.is_zero():
+            # Points will still be mapped to the same z-coordinate
+            # However, w_a = (v1 x_a + v0)/x_a^3 and w_b = (v1 x_a - v0)/(x_a)^3 in general will have w_a != - w_b
+            # w_a = -w_b  <=> v1 = 0
+            if v1.is_zero():
+                print("E2 Special case: s=0, v1=0")
+                E2_image = E2(0)
+            # w_a = w_b <=> v0 = 0
+            elif v0.is_zero():
+                print("E2 Special case: s=0, v0=0")
+                # In this case w_a = w_b = v1 x_a / x_a^3 = v1 / x_a^2
+                E2_image = 2 * E2(morphE2(1/-p, - v1/p)) # This may be incorrect?
+            else:
+                raise ValueError("Cannot have s=0 with v1, v0 both non-zero. This is mathematically impossible unless x_a = 0...") # this is because y_a^2 = y_b^2 implies (v1 x_a + v0)^2 = (v1 (-x_a) + v0)^2 => 4 v1 v0 x_a = 0
+        else:
+            C = v1*(s*s-2*p) + v0*s
+            U2 = x**2 - (s*s-2*p)/p**2*x + 1/p**2 # The roots are 1/x_a^2 := z_a, 1/x_b^2 := z_b
+            
+            V21 = x**2 * C # this is z^2 * (x_ay_a + x_by_b)
+            V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2)) # w^2 + z^4(x_a x_b y_ay_b)
+            print(f"V21: {V21}, V20: {V20}, U2: {U2}")
+
+            # V21 * w = V20 modulo U2 (for (z_a, w_a) and (z_b, w_b))
+            _d, V21inv, _ = V21.xgcd(U2)
+            print(f"GCD of V21 and U2: {_d}")
+            print(f"C: {C}")
+            assert _d.is_one(), f"GCD not 1: {_d}\n s: {s}, p: {p}\n V21: {V21}, U2: {U2}"
             V2 = (V21inv * V20) % U2
-            print(f"U2: {U2}, V2: {V2}")
-            print(f"U2 roots: {U2.roots()}")
-            print(f"V21: {V21}, V20: {V20}")
             assert V2**2 % U2 == p2 % U2
+
             # Reduce coordinates
             U2red = (p2 - V2**2) // U2
             xP2 = -U2red[0] / U2red[1]
@@ -386,3 +411,132 @@ def FromJacToProd(G1, G2, G3):
         return CouplePoint(E1_image, E2_image)
 
     return (E1, E2), isogeny
+
+
+
+# def FromJacToProd(G1, G2, G3):
+#     print(f"---------------- FromJacToProd ----------------")
+#     h = G1*G2*G3
+#     R = h.parent()
+#     Fp2 = R.base()
+#     x = R.gen()
+#     print(f"h: {h}")
+#     print(f"G1: {G1}, G2: {G2}, G3: {G3}")
+#     print(f"G1 roots: {G1.roots()},\n G2 roots: {G2.roots()},\n G3 roots: {G3.roots()}")
+
+#     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
+#     # Find homography
+#     need_homography = True
+#     u, v, w = M.right_kernel().gen()
+#     if u.is_zero():
+#         H11, H21, H31 = M.column(2)
+#         H10, H20, H30 = M.column(0)
+#         need_homography = False
+#     else:
+#         d = u/2
+#         (ad, _), (b, _) = (x**2 - v*x + w*d/2).roots()
+#         a = ad / d
+
+#         # Apply transform G(x) -> G((a*x+b)/(x+d))*(x+d)^2
+#         # The coefficients of x^2 are M * (1, a, a^2)
+#         # The coefficients of 1 are M * (d^2, b*d, b^2)
+#         H11, H21, H31 = M * vector([1, a, a*a])
+#         H10, H20, H30 = M * vector([d*d, b*d, b*b])
+#         assert G1((a*x+b)/(x+d))*(x+d)**2 == H11*x**2+H10
+
+#     # h2 = (H11*x**2+H10)*(H21*x**2+H20)*(H31*x**2+H30)
+#     # H2 = HyperellipticCurve(h2)
+
+#     p1 = (H11*x+H10)*(H21*x+H20)*(H31*x+H30)
+#     p2 = (H11+H10*x)*(H21+H20*x)*(H31+H30*x)
+#     # We will need to map to actual elliptic curve
+#     p1norm = (x + H10*H21*H31)*(x + H20*H11*H31)*(x + H30*H11*H21)
+#     p2norm = (x + H11*H20*H30)*(x + H21*H10*H30)*(x + H31*H10*H20)
+#     E1 = EllipticCurve([0, p1norm[2], 0, p1norm[1], p1norm[0]])
+#     E2 = EllipticCurve([0, p2norm[2], 0, p2norm[1], p2norm[0]])
+
+#     def morphE1(x, y):
+#         # from y^2=p1 to y^2=p1norm
+#         return (H11*H21*H31*x, H11*H21*H31*y)
+#     def morphE2(x, y):
+#         # from y^2=p2 to y^2=p2norm
+#         return (H10*H20*H30*x, H10*H20*H30*y)
+#     # The morphisms are:
+#     # inverse homography:
+#     # H->H2: x, y => ((b-dx) / (x-a), y/(x-a)^3)
+#     # then H2->E1:(x,y) => (x^2,y)
+#     #   or H2->E2:(x,y) => (1/x^2,y/x^3)
+
+#     def isogeny(D):
+#         # HyperellipticCurve(h).jacobian()(D)
+#         # To map a divisor, perform the change of coordinates
+#         # on Mumford coordinates
+#         U, V = D
+#         print(f"U: {U}, V: {V}")
+#         print(f"U roots: {U.roots()}")
+#         # apply homography (if applied before)
+#         # y = v1 x + v0 =>
+#         if need_homography:
+#             U_ = U[0] * (x+d)**2 + U[1]*(a*x+b)*(x+d) + U[2]*(a*x+b)**2
+#             V_ = V[0] * (x+d)**3 + V[1]*(a*x+b)*(x+d)**2
+#             V_ = V_ % U_
+#         else:
+#             U_, V_ = U, V
+#         v1, v0 = V_[1], V_[0]
+#         # prepare symmetric functions
+#         s = - U_[1] / U_[2] # s = x1 + x2
+#         p = U_[0] / U_[2] # p = x1 * x2
+#         print(f"s: {s}\np: {p}")
+#         # compute Mumford coordinates on E1
+#         # Points x1, x2 map to x1^2, x2^2
+#         U1 = x**2 - (s*s - 2*p)*x + p**2
+#         print(f"U1 roots: {U1.roots()}")
+#         # y = v1 x + v0 becomes (y - v0)^2 = v1^2 x^2
+#         # so 2v0 y-v0^2 = p1 - v1^2 xH^2 = p1 - v1^2 xE1
+#         # V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+#         ### Added by Nic Swanson for Debugging
+#         E1_image = None
+#         if v0.is_zero() and s.is_zero():
+#             E1_image = E1(0)
+#         else:
+#             if v0.is_zero():
+#                 V1 = (v1 / s) * (x + p)
+#             else:
+#                 V1 = (p1 - v1**2 * x + v0**2) / (2*v0)
+#             V1 = V1 % U1
+#             U1red = (p1 - V1**2) // U1
+#             xP1 = -U1red[0] / U1red[1]
+#             yP1 = V1(xP1)
+#             assert yP1**2 == p1(xP1)
+#             E1_image = E1(morphE1(xP1, yP1))
+#         ###
+#         # Reduce Mumford coordinates to get a E1 point
+        
+#         # Same for E2
+#         # Points x1, x2 map to 1/x1^2, 1/x2^2
+#         U2 = x**2 - (s*s-2*p)/p**2*x + 1/p**2
+#         print(f"U2 roots: {U2.roots()}")
+#         E2_image = None
+#         if v1.is_zero() and s.is_zero():
+#             E2_image = E2(0)
+#         else: 
+#             # yE = y1/x1^3, xE = 1/x1^2
+#             # means yE = y1 x1 xE^2
+#             # (yE - y1 x1 xE^2)(yE - y2 x2 xE^2) = 0
+#             # p2 - yE (x1 y1 + x2 y2) xE^2 + (x1 y1 x2 y2 xE^4) = 0
+#             V21 = x**2 * (v1 * (s*s-2*p) + v0*s)
+#             V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2))
+#             # V21 * y = V20
+#             _, V21inv, _ = V21.xgcd(U2)
+#             V2 = (V21inv * V20) % U2
+#             assert V2**2 % U2 == p2 % U2
+#             # Reduce coordinates
+#             U2red = (p2 - V2**2) // U2
+#             xP2 = -U2red[0] / U2red[1]
+#             yP2 = V2(xP2)
+#             assert yP2**2 == p2(xP2)
+#             E2_image = E2(morphE2(xP2, yP2))
+
+#         return CouplePoint(E1_image, E2_image)
+
+#     return (E1, E2), isogeny
