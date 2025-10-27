@@ -60,10 +60,10 @@ def FromProdToJac(P, Q):
 
     a1, a2, a3 = P_c[0], Q_c[0], (P_c + Q_c)[0]
     b1, b2, b3 = P_e[0], Q_e[0], (P_e + Q_e)[0]
-    print(f"C: {C}")
     print(f"P_c: {P_c}, P_e: {P_e}")
     print(f"Q_c: {Q_c}, Q_e: {Q_e}")
-    print(f"a1: {a1}, a2: {a2}, a3: {a3}\n b1: {b1}, b2: {b2}, b3: {b3}")
+    print(f"pairing: {P.weil_pairing(Q, 2)}")
+    print(f"a1: {a1}, a2: {a2}, a3: {a3}\nb1: {b1}, b2: {b2}, b3: {b3}")
     # Compute coefficients
     M = Matrix(Fp2, [
         [a1*b1, a1, b1],
@@ -313,7 +313,7 @@ def FromJacToProd(G1, G2, G3):
     #   or H2->E2:(x,y) => (1/x^2,y/x^3)
 
     def isogeny(D):
-        HyperellipticCurve(h).jacobian()([D[0], D[1]])
+        # HyperellipticCurve(h).jacobian()([D[0], D[1]])
         # To map a divisor, perform the change of coordinates
         # on Mumford coordinates
         U, V = D # Lets call the roots x_a, x_b
@@ -328,10 +328,28 @@ def FromJacToProd(G1, G2, G3):
 
         # Note that y_a = v1 x_a + v0, y_b = v1 x_b + v0 are the y-coordinates corresponding to x_a, x_b
         v1, v0 = V_[1], V_[0]
-        print(f"v1: {v1}, v0: {v0}")
         # prepare symmetric functions
         s = - U_[1] / U_[2] # SUM of roots of U_: x_a + x_b
         p = U_[0] / U_[2] # PRODUCT of roots of U_: x_a * x_b
+        print(f"v1: {v1}, v0: {v0}, s: {s}, p: {p}, homography_needed: {homography_needed}")
+        print(f"CHEATING: DO NOT ALLOW IN PRODUCTION CODE")
+        roots = U_.roots(ring=Fp2.extension(2))
+        xa = roots[0][0]
+        xb = roots[1][0] if len(roots) > 1 else roots[0][0]
+        print(f"U Roots: {xa}, {xb}")
+        za_1 = xa**2
+        zb_1 = xb**2
+        print(f"za_1: {za_1}, zb_1: {zb_1}")
+        za_2 = 1/xa**2
+        zb_2 = 1/xb**2
+        print(f"za_2: {za_2}, zb_2: {zb_2}")
+        wa_1 = v1 * xa + v0
+        wb_1 = v1 * xb + v0
+        print(f"wa_1: {wa_1}, wb_1: {wb_1}")
+        wa_2 = (v1 * xa + v0) / xa**3
+        wb_2 = (v1 * xb + v0) / xb**3
+        print(f"wa_2: {wa_2}, wb_2: {wb_2}")
+
 
         assert p != 0 # nether x_a not x_b can be zero. Perhaps a change of coordinates is needed.
 

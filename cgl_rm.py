@@ -5,6 +5,7 @@ from richelot_rm_utils import RMVertex, get_computable_isogeny, golden_ratio_act
 
 ### Fixed Parameters ###
 # e = 43
+set_random_seed(3)
 e = 11
 f = 3
 p = 2**e * f - 1
@@ -35,6 +36,7 @@ def hash_message():
         current_vertex = next_vertex
 
 # hash_message()
+
 for i in range(100):
     print(f"Hashing iteration {i}/100")
     hash_message()

@@ -77,9 +77,9 @@ def is_2_kernel_diagonal(kernel):
     Returns:
         bool: True if the kernel generates a diagonal isogeny, False otherwise.
     """
-    (P1, P2), (Q1, Q2) = kernel
-    if (P2 == 0 and Q1 == 0): return True
-    if (P1 == 0 and Q2 == 0): return True
+    (P1, Q1), (P2, Q2) = kernel
+    if P1 == 0 or P2 == 0 or Q1 == 0 or Q2 == 0:
+        return True
     return False
 
 def diagonal_isogeny(kernel):
@@ -94,6 +94,7 @@ def diagonal_isogeny(kernel):
     """
     assert is_2_kernel_diagonal(kernel), "Kernel must be diagonal."
     gen1, gen2 = kernel
+
     E1 = gen1[0].curve()
     E2 = gen1[1].curve()
     P1 = gen1[0] if gen1[0] != E1(0) else gen2[0]

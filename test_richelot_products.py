@@ -35,9 +35,9 @@ def get_maximal_isotropic_subgroups_of_N_torsion(E1, E2, N, PN_1=None, QN_1=None
         list: List of tuples of CouplePoint objects generating maximal isotropic subgroups of E1[N] x E2[N].
     """
     if PN_1 is None or QN_1 is None:
-        PN_1, QN_1 = torsion_basis(E1, N)
+        PN_1, QN_1 = E1.torsion_basis(N)
     if PN_2 is None or QN_2 is None:
-        PN_2, QN_2 = torsion_basis(E2, N)
+        PN_2, QN_2 = E2.torsion_basis(N)
     symplectic_basis = [CouplePoint(PN_1, E2(0)), CouplePoint(E1(0), PN_2), CouplePoint(QN_1, E2(0)), CouplePoint(E1(0), QN_2)]
     
     def vec_to_point(vec):
@@ -86,12 +86,12 @@ test_product_creation()
 
 def test_isotropic_torsion_basis():
     E1, E2 = get_arbitrary_product_example(2**11 * 3**5 - 1)
-    P2_1, Q2_1 = torsion_basis(E1, 2)
+    P2_1, Q2_1 = E1.torsion_basis(2)
     assert P2_1.order() == 2
     assert Q2_1.order() == 2
     assert P2_1.weil_pairing(Q2_1, 2).multiplicative_order() == 2
-    
-    P2e_1, Q2e_1 = torsion_basis(E1, 2**11)
+
+    P2e_1, Q2e_1 = E1.torsion_basis(2**11)
     assert P2e_1.order() == 2**11
     assert Q2e_1.order() == 2**11
     assert P2e_1.weil_pairing(Q2e_1, 2**11).multiplicative_order() == 2**11
@@ -106,8 +106,8 @@ def test_maximal_isotropic_subgroups_of_N_torsion():
     seen = []
     for gen1, gen2 in maximal_isotropic_subgroups:
         # Check that the generators are valid
-        assert LCM(gen1.order()[0], gen1.order()[1])  == 2
-        assert LCM(gen2.order()[0], gen2.order()[1])  == 2
+        assert gen1.order()  == 2
+        assert gen2.order()  == 2
         assert gen1.weil_pairing(gen2, 2) == 1
         #Check there are no duplicates
         pair = (repr(gen1), repr(gen2))
@@ -119,8 +119,8 @@ test_maximal_isotropic_subgroups_of_N_torsion()
 def test_diagonal_isogenies():
     number_of_diagonal_kernels = 0
     E1, E2 = get_arbitrary_square_example(2**11 * 3**5 - 1)
-    P2_1, Q2_1 = torsion_basis(E1, 2)
-    P2_2, Q2_2 = torsion_basis(E2, 2)
+    P2_1, Q2_1 = E1.torsion_basis(2)
+    P2_2, Q2_2 = E2.torsion_basis(2)
     maximal_isotropic_subgroups = get_maximal_isotropic_subgroups_of_N_torsion(E1, E2, 2, P2_1, Q2_1, P2_2, Q2_2)
     for gen1, gen2 in maximal_isotropic_subgroups:
         if is_2_kernel_diagonal((gen1, gen2)):

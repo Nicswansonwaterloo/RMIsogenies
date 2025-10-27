@@ -39,16 +39,13 @@ class RMVertex:
         - The action on the 2^r-torsion is stored in the attribute 'action', which is a 4x4 matrix with coefficients in Z/(2^r)Z.
         - The weil pairing on the 2-torsion is stored in the attribute 'weil_pairing', which is a 4x4 matrix with coefficients in GF(2).
     """
-    def __init__(self, variety, r, torsion_generators, rm_action, weil_pairing=None):
+    def __init__(self, variety, r, torsion_generators, rm_action):
         self.variety = variety
         self.r = r
         self.torsion_generators = torsion_generators
         self.two_torsion_basis = [2**(r - 1) * P for P in torsion_generators]
         self.rm_action = rm_action
-        if weil_pairing is None:
-            self.weil_pairing = self._compute_weil_pairing()
-        else:
-            self.weil_pairing = weil_pairing
+        self.weil_pairing = self._compute_weil_pairing()
 
 
     def _compute_weil_pairing(self):
@@ -87,6 +84,8 @@ class RMVertex:
     
     def _vector_to_point(self, vec, two_torsion = False):
         generators = self.two_torsion_basis if two_torsion else self.torsion_generators
+        modulus = 2 if two_torsion else 2 ** self.r
+        vec = [int(vec[i]) % modulus for i in range(4)]
         components = [int(vec[i]) * generators[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
     
@@ -139,6 +138,14 @@ class RMVertex:
         new_torsion_gens = [self._vector_to_point(col, two_torsion=False) for col in C.columns()]
         codomain_torsion_gens = [phi(new_torsion_gens[0]),phi(new_torsion_gens[1]),phi(2 * new_torsion_gens[2]),phi(2 * new_torsion_gens[3])]
 
+        # Check that the codomain gens are linearly independent
+        print(f"Codomain: {codomain}")
+        for i in range(4):
+            print(f"Codomain torsion gen {i}: {codomain_torsion_gens[i]}")
+            if isinstance(codomain, tuple):
+                print(f" - order: {codomain_torsion_gens[i][0].order()}, {codomain_torsion_gens[i][1].order()}")
+                
+
         # Check that the new torsion generators have correct orders
         should_be_zero = [Integer(2**(self.r - 1)) * P for P in codomain_torsion_gens]
         two_torsion_orders = [Integer(2**(self.r - 2)) * P for P in codomain_torsion_gens]        
@@ -163,14 +170,61 @@ class RMVertex:
         rm_action_prime = rm_action_prime.change_ring(Integers(2**(self.r - 1)))
 
         next_vertex = RMVertex(codomain, self.r - 1, codomain_torsion_gens, rm_action_prime)
+        print(f"rm_action on domain:\n{rm_action_on_C_lifted} \n")
+        print(f"rm_action on domain mod 2:\n{rm_action_on_C} \n")
+        print(f"rm_action on codomain:\n{next_vertex.rm_action} \n")
+        print(f"rm_action on codomain mod 2:\n{next_vertex.rm_action.change_ring(GF(2))} \n")
 
         # Check that rm' \circ phi = phi \circ rm on the reduced generators of 2^r
-        # for i, rm_Pi_col in enumerate(rm_action_on_C):
-        #     rm_Pi = self._vector_to_point(rm_Pi_col, two_torsion=False)
+        # for i in range(4):
+        #     print(f"Checking commutation on generator {i} \n \n \n")
+        #     pi_four_torsion = [Integer(2**(self.r - 2)) * P for P in new_torsion_gens]
+        #     def Pi_basis_to_point(col):
+        #         components = [int(col[j]) * pi_four_torsion[j] for j in range(4)]
+        #         print(f" ----- components: {components} ----- ")
+        #         return components[0] + components[1] + components[2] + components[3]
+        #     rm_Pi_col = rm_action_on_C.column(i) # This is the image of rm(P_i) in the P_i basis
+        #     print(f"rm(P_{i}) in P_i basis (mod 2): {rm_Pi_col}")
+        #     rm_Pi = Pi_basis_to_point(rm_Pi_col)
+        #     print(f"rm(P_{i}) as point (mod 2): {rm_Pi}")
         #     phi_rm_Pi = phi(rm_Pi)
+        #     print(f"phi(rm(P_{i})) in codomain (mod 2): {phi_rm_Pi}")
+        #     if i > 1:
+        #         phi_rm_Pi = 2 * phi_rm_Pi # This is rm(T_i') in the codomain
+        #     assert phi_rm_Pi * Integer(2) == 0, f"phi(rm(P_{i})) does not have correct order:\n {phi_rm_Pi}"
 
-        #     rm_Ti_prime = next_vertex._vector_to_point(rm_action_prime.column(i), two_torsion=False)
-        #     assert phi_rm_Pi == rm_Ti_prime, f"RM action does not commute with isogeny on generator {i}:\n phi(rm(P_{i})) = \n {phi_rm_Pi}\n rm(T_{i}') = \n{rm_Ti_prime}"
+        #     Ti_prime = two_torsion_orders[i]
+        #     print(f"T_{i}' in codomain: {Ti_prime}")
+        #     rm_Ti_prime_col = next_vertex.rm_action.column(i)
+        #     print(f"rm(T_{i}') in codomain basis (mod 2): {rm_Ti_prime_col}")
+        #     rm_Ti_prime = next_vertex._vector_to_point(rm_Ti_prime_col, two_torsion=True)
+        #     assert rm_Ti_prime * Integer(2) == 0, f"rm(T_{i}') does not have correct order:\n {rm_Ti_prime}"
+
+        #     assert phi_rm_Pi - rm_Ti_prime == 0, f"RM action does not commute with isogeny on generator {i}:\n phi(rm(P_{i})) = \n {phi_rm_Pi}\n rm(T_{i}') = \n{rm_Ti_prime} \n diff: \n {phi_rm_Pi - rm_Ti_prime}"
+            
+        #     # print("mod 2 ----")
+
+        #     print("Lifted ----")
+        #     def Pi_basis_to_point(col):
+        #         components = [(int(col[j]) % 2 ** self.r) * new_torsion_gens[j] for j in range(4)]
+        #         return components[0] + components[1] + components[2] + components[3]
+        #     rm_Pi_col = rm_action_on_C_lifted.column(i) # This is the image of rm(P_i) in the P_i basis
+        #     print(f"rm(P_{i}) in P_i basis: {rm_Pi_col}")
+        #     rm_Pi = Pi_basis_to_point(rm_Pi_col)
+        #     print(f"rm(P_{i}) as point: {rm_Pi}")
+        #     phi_rm_Pi = phi(rm_Pi)
+        #     print(f"phi(rm(P_{i})) in codomain: {phi_rm_Pi}")
+        #     if i > 1:
+        #         phi_rm_Pi = 2 * phi_rm_Pi # This is rm(T_i') in the codomain
+
+        #     assert phi_rm_Pi * Integer(2 ** (self.r - 1)) == 0, f"phi(rm(P_{i})) does not have correct order:\n {phi_rm_Pi}"
+        #     assert phi_rm_Pi * Integer(2 ** (self.r - 2)) != 0, f"phi(rm(P_{i})) does not have correct order:\n {phi_rm_Pi}"
+
+        #     Ti_prime = codomain_torsion_gens[i]
+        #     rm_Ti_prime_col = next_vertex.rm_action.column(i)
+        #     print(f"T_{i}' in codomain: {Ti_prime}")
+        #     rm_Ti_prime = next_vertex._vector_to_point(rm_Ti_prime_col, two_torsion=False)
+        #     assert phi_rm_Pi - rm_Ti_prime == 0, f"RM action does not commute with isogeny on generator {i}:\n phi(rm(P_{i})) = \n {phi_rm_Pi}\n rm(T_{i}') = \n{rm_Ti_prime} \n diff: \n {phi_rm_Pi - rm_Ti_prime}"
 
         return next_vertex
                 
