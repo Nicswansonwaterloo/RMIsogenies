@@ -72,7 +72,7 @@ class JacobianPoint:
         return JacobianPoint(m * self.D)
     
     def __hash__(self):
-        return hash(self.D)
+        return hash((hash(self.D1), hash(self.D2)))
 
     def weil_pairing(self, other, n):
         if not isinstance(other, JacobianPoint):

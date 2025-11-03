@@ -85,7 +85,7 @@ class ProductPoint:
         return self * m
     
     def __hash__(self):
-        return hash((self.P1, self.P2))
+        return hash((hash(self.P1), hash(self.P2)))
 
     def weil_pairing(self, other, n):
         """

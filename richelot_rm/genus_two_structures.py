@@ -1,4 +1,5 @@
 from sage.all import HyperellipticCurve, GF
+from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 
 class GenusTwoStructure:
     """
@@ -31,6 +32,11 @@ class GenusTwoProductStructure(GenusTwoStructure):
         if not isinstance(other, GenusTwoProductStructure):
             return False
         return self.E1 == other.E1 and self.E2 == other.E2
+    
+    def get_isomorphism_class_invariants(self):
+        j1 = self.E1.j_invariant()
+        j2 = self.E2.j_invariant()
+        return tuple(sorted((j1, j2)))
     
     def is_isomorphic_to(self, other):
         if not isinstance(other, GenusTwoProductStructure):
@@ -76,6 +82,14 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
         if not isinstance(other, GenusTwoJacobianStructure):
             return False
         return self.h == other.h
+    
+    def get_isomorphism_class_invariants(self):
+        return absolute_igusa_invariants_kohel(self.h)
+    
+    def is_isomorphic_to(self, other):
+        if not isinstance(other, GenusTwoJacobianStructure):
+            return False
+        return self.get_isomorphism_class_invariants() == other.get_isomorphism_class_invariants()
     
     # Points will be divisors on the jacobian. Handled by Sage internally.
     def __call__(self, *args):

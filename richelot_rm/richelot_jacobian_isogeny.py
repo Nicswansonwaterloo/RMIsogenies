@@ -1,5 +1,5 @@
 from sage.all import Matrix, GF, vector, HyperellipticCurve, EllipticCurve
-from richelot_rm.genus_two_structures import GenusTwoProductStructure
+from richelot_rm.genus_two_structures import GenusTwoJacobianStructure, GenusTwoProductStructure
 from richelot_rm.jacobian_point import JacobianPoint
 from richelot_rm.product_point import ProductPoint
 
@@ -17,6 +17,7 @@ def is_2_kernel_jac(kernel):
     G3, r3 = h.quo_rem(G1 * G2)
     return r3 == 0
 
+
 def is_2_kernel_jac_split(kernel):
     if not is_2_kernel_jac(kernel):
         raise ValueError("The given kernel does not define a 2-isogeny on a jacobian of genus 2")
@@ -30,12 +31,12 @@ def is_2_kernel_jac_split(kernel):
     G3 = h // (G1 * G2)
 
     delta = Matrix(G.padded_list(3) for G in (G1, G2, G3))
-    print(f"Determinant of kernel matrix: {delta.determinant()}")
     if delta.determinant():
         # Determinant is non-zero, no splitting
         return False
 
     return True
+
 
 def jacobian_to_product_2_isogeny(kernel):
     if not is_2_kernel_jac_split(kernel):
@@ -105,25 +106,6 @@ def jacobian_to_product_2_isogeny(kernel):
         # prepare symmetric functions
         s = - U_[1] / U_[2] # SUM of roots of U_: x_a + x_b
         p = U_[0] / U_[2] # PRODUCT of roots of U_: x_a * x_b
-        # print(f"v1: {v1}, v0: {v0}, s: {s}, p: {p}, homography_needed: {homography_needed}")
-        # print(f"CHEATING: DO NOT ALLOW IN PRODUCTION CODE")
-        # roots = U_.roots(ring=Fp2.extension(2))
-        # xa = roots[0][0]
-        # xb = roots[1][0] if len(roots) > 1 else roots[0][0]
-        # print(f"U Roots: {xa}, {xb}")
-        # za_1 = xa**2
-        # zb_1 = xb**2
-        # print(f"za_1: {za_1}, zb_1: {zb_1}")
-        # za_2 = 1/xa**2
-        # zb_2 = 1/xb**2
-        # print(f"za_2: {za_2}, zb_2: {zb_2}")
-        # wa_1 = v1 * xa + v0
-        # wb_1 = v1 * xb + v0
-        # print(f"wa_1: {wa_1}, wb_1: {wb_1}")
-        # wa_2 = (v1 * xa + v0) / xa**3
-        # wb_2 = (v1 * xb + v0) / xb**3
-        # print(f"wa_2: {wa_2}, wb_2: {wb_2}")
-
         assert p != 0 # nether x_a not x_b can be zero. Perhaps a change of coordinates is needed.
 
         # For E1: x -> x^2 := z, and y -> y := w
@@ -192,7 +174,6 @@ def jacobian_to_product_2_isogeny(kernel):
                 V20 = p2 + x**4 * (p*(v1**2*p + v1*v0*s + v0**2)) # w^2 + z^4(x_a x_b y_ay_b)
 
                 # V21 * w = V20 modulo U2 (for (z_a, w_a) and (z_b, w_b))
-                print(f"C: {C}")
                 _d, V21inv, _ = V21.xgcd(U2)
                 assert _d.is_one(), f"GCD not 1: {_d}\n s: {s}, p: {p}\n V21: {V21}, U2: {U2}"
                 V2 = (V21inv * V20) % U2
@@ -219,9 +200,11 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
     G1, _ = gen1
     G2, _ = gen2
-    if G1[2] != 1 or G2[2] != 1:
-        G1 = G1 / G1[2]
-        G2 = G2 / G2[2]
+    if (G1[2] != 1 and G1[2] != 0):
+        G1 = G1 // G1[2]
+    if (G2[2] != 1 and G2[2] != 0):
+        G2 = G2 // G2[2]
+    
     G3 = h // (G1 * G2)
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
     delta = M.inverse()
@@ -232,14 +215,61 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
     # This is the so-called Richelot Correspondance from Ben Smith's thesis:
     h_codomain = H1 * H2 * H3
-
+    codomain = GenusTwoJacobianStructure(h_codomain)
+    
     def isogeny(D: JacobianPoint):
         U, V = D
         
+        # Make monic
         if not U[2].is_one():
             U = U / U[2]
         V = V % U
         if U == G1 or U == G2:
             return JacobianPoint(J(0))
-        
-        return None
+
+        # Sum and product of (xa, xb)
+        s, p = -U[1], U[0]
+        # Compute X coordinates (non reduced, degree 4)
+        g1red = G1 - U
+        g2red = G2 - U
+        # Make sure everything is monic!
+        assert g1red[2].is_zero() and g2red[2].is_zero()
+        g11, g10 = g1red[1], g1red[0]
+        g21, g20 = g2red[1], g2red[0]
+        # see above
+        Px = (g11*g11*p + g11*g10*s + g10*g10) * H1 * H1 \
+           + (2*g11*g21*p + (g11*g20+g21*g10)*s + 2*g10*g20) * H1 * H2 \
+           + (g21*g21*p + g21*g20*s + g20*g20) * H2 * H2
+
+        # Compute Y coordinates (non reduced, degree 3)
+        assert V[2].is_zero()
+        v1, v0 = V[1], V[0]
+        # coefficient of y^2 is V(xa)V(xb)
+        Py2 = v1*v1*p + v1*v0*s + v0*v0
+        # coefficient of y is h1(x) * (V(xa) Gred1(xb) (x-xb) + V(xb) Gred1(xa) (x-xa))
+        # so we need to symmetrize:
+        # V(xa) Gred1(xb) (x-xb)
+        # = (v1*xa+v0)*(g11*xb+g10)*(x-xb)
+        # = (v1*g11*p + v1*g10*xa + v0*g11*xb + v0*g10)*x
+        # - xb*(v1*g11*p + v1*g10*xa + v0*g11*xb + v0*g10)
+        # Symmetrizing xb^2 gives u1^2-2*u0
+        Py1 = (2*v1*g11*p + v1*g10*s + v0*g11*s + 2*v0*g10)*x \
+          - (v1*g11*s*p + 2*v1*g10*p + v0*g11*(s*s-2*p) + v0*g10*s)
+        Py1 *= H1
+        # coefficient of 1 is Gred1(xa) Gred1(xb) h1(x)^2 U(x)
+        Py0 = H1 * U * (g11*g11*p + g11*g10*s + g10*g10)
+
+        # Now reduce the divisor, and compute Cantor reduction.
+        # Py2 * y^2 + Py1 * y + Py0 = 0
+        # y = - (Py2 * hnew + Py0) / Py1
+        _, Py1inv, _ = Py1.xgcd(Px)
+        Py = (- Py1inv * (Py2 * h_codomain + Py0)) % Px
+        assert Px.degree() == 4
+        assert Py.degree() <= 3
+
+        Dx = ((h_codomain - Py ** 2) // Px)
+        Dy = (-Py) % Dx
+        jac_divisor = codomain.jac([Dx, Dy])
+        return JacobianPoint(jac_divisor)
+    
+    return codomain, isogeny
