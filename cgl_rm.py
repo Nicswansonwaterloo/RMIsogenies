@@ -4,9 +4,9 @@ from richelot_products import get_arbitrary_square_example
 from richelot_rm_utils import RMVertex, get_computable_isogeny, golden_ratio_action_on_symplectic_torsion
 
 ### Fixed Parameters ###
+e = 216
 # e = 43
-set_random_seed(3)
-e = 11
+# e = 11
 f = 3
 p = 2**e * f - 1
 assert is_prime(p)
@@ -17,9 +17,8 @@ P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
 torsion_generators = [CouplePoint(P2e_1, E2(0)), CouplePoint(E1(0), P2e_2), CouplePoint(Q2e_1, E2(0)), CouplePoint(E1(0), Q2e_2)]
 initial_vertex = RMVertex((E1, E2), e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e))
 
-def hash_message():
+def hash_message(m):
     ### Hash a random message ###
-    m = [randint(0, 4) for _ in range(e - 2)]
     current_vertex = initial_vertex
     for i in range(len(m)):
         print(f"Step {i+1}/{len(m)}: current vertex is \n {current_vertex}\n")
@@ -35,8 +34,7 @@ def hash_message():
 
         current_vertex = next_vertex
 
-# hash_message()
 
-for i in range(100):
-    print(f"Hashing iteration {i}/100")
-    hash_message()
+set_random_seed(int("Real Multiplication!".encode().hex(), 16))
+m = [randint(0, 4) for _ in range(e - 2)]
+hash_message(m)

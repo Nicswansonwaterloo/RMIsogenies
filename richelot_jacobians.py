@@ -60,10 +60,10 @@ def FromProdToJac(P, Q):
 
     a1, a2, a3 = P_c[0], Q_c[0], (P_c + Q_c)[0]
     b1, b2, b3 = P_e[0], Q_e[0], (P_e + Q_e)[0]
-    print(f"P_c: {P_c}, P_e: {P_e}")
-    print(f"Q_c: {Q_c}, Q_e: {Q_e}")
-    print(f"pairing: {P.weil_pairing(Q, 2)}")
-    print(f"a1: {a1}, a2: {a2}, a3: {a3}\nb1: {b1}, b2: {b2}, b3: {b3}")
+    # print(f"P_c: {P_c}, P_e: {P_e}")
+    # print(f"Q_c: {Q_c}, Q_e: {Q_e}")
+    # print(f"pairing: {P.weil_pairing(Q, 2)}")
+    # print(f"a1: {a1}, a2: {a2}, a3: {a3}\nb1: {b1}, b2: {b2}, b3: {b3}")
     # Compute coefficients
     M = Matrix(Fp2, [
         [a1*b1, a1, b1],
@@ -71,7 +71,7 @@ def FromProdToJac(P, Q):
         [a3*b3, a3, b3]])
     R, S, T = M.inverse() * vector(Fp2, [1,1,1])
     RD = R * M.determinant()
-    print(f"R: {R}, S: {S}, T: {T}, RD: {RD}")
+    # print(f"R: {R}, S: {S}, T: {T}, RD: {RD}")
     da = (a1 - a2)*(a2 - a3)*(a3 - a1)
     db = (b1 - b2)*(b2 - b3)*(b3 - b1)
 
@@ -167,7 +167,6 @@ class RichelotCorr:
         self.hnew = hnew
         self.jacobian = HyperellipticCurve(hnew).jacobian()
         self.x = hnew.parent().gen()
-        print(f"G1 roots: {G1.roots()},\n G2 roots: {G2.roots()}\n H1 roots: {H1.roots()}, H2 roots: {H2.roots()}")
 
     def map(self, P):
         "Computes (non-monic) Mumford coordinates for the image of P"
@@ -331,24 +330,24 @@ def FromJacToProd(G1, G2, G3):
         # prepare symmetric functions
         s = - U_[1] / U_[2] # SUM of roots of U_: x_a + x_b
         p = U_[0] / U_[2] # PRODUCT of roots of U_: x_a * x_b
-        print(f"v1: {v1}, v0: {v0}, s: {s}, p: {p}, homography_needed: {homography_needed}")
-        print(f"CHEATING: DO NOT ALLOW IN PRODUCTION CODE")
-        roots = U_.roots(ring=Fp2.extension(2))
-        xa = roots[0][0]
-        xb = roots[1][0] if len(roots) > 1 else roots[0][0]
-        print(f"U Roots: {xa}, {xb}")
-        za_1 = xa**2
-        zb_1 = xb**2
-        print(f"za_1: {za_1}, zb_1: {zb_1}")
-        za_2 = 1/xa**2
-        zb_2 = 1/xb**2
-        print(f"za_2: {za_2}, zb_2: {zb_2}")
-        wa_1 = v1 * xa + v0
-        wb_1 = v1 * xb + v0
-        print(f"wa_1: {wa_1}, wb_1: {wb_1}")
-        wa_2 = (v1 * xa + v0) / xa**3
-        wb_2 = (v1 * xb + v0) / xb**3
-        print(f"wa_2: {wa_2}, wb_2: {wb_2}")
+        # print(f"v1: {v1}, v0: {v0}, s: {s}, p: {p}, homography_needed: {homography_needed}")
+        # print(f"CHEATING: DO NOT ALLOW IN PRODUCTION CODE")
+        # roots = U_.roots(ring=Fp2.extension(2))
+        # xa = roots[0][0]
+        # xb = roots[1][0] if len(roots) > 1 else roots[0][0]
+        # print(f"U Roots: {xa}, {xb}")
+        # za_1 = xa**2
+        # zb_1 = xb**2
+        # print(f"za_1: {za_1}, zb_1: {zb_1}")
+        # za_2 = 1/xa**2
+        # zb_2 = 1/xb**2
+        # print(f"za_2: {za_2}, zb_2: {zb_2}")
+        # wa_1 = v1 * xa + v0
+        # wb_1 = v1 * xb + v0
+        # print(f"wa_1: {wa_1}, wb_1: {wb_1}")
+        # wa_2 = (v1 * xa + v0) / xa**3
+        # wb_2 = (v1 * xb + v0) / xb**3
+        # print(f"wa_2: {wa_2}, wb_2: {wb_2}")
 
 
         assert p != 0 # nether x_a not x_b can be zero. Perhaps a change of coordinates is needed.
