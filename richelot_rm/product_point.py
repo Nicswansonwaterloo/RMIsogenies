@@ -1,11 +1,14 @@
 from sage.all import ZZ, lcm
+from richelot_rm.genus_two_structures import GenusTwoProductStructure
 
-
-class CouplePoint:
+"""
+Borrowed and modified from https://github.com/ThetaIsogenies/two-isogenies
+"""
+class ProductPoint:
     """
     A helper class which represents an element P = (P1, P2) in E1 x E2
     and allows us to compute certain useful functions, such as adding,
-    doubling or comouting the Weil pairing of e(P,Q) for P,Q in E1 x E2
+    doubling or computing the Weil pairing of e(P,Q) for P,Q in E1 x E2
     """
 
     def __init__(self, P1, P2):
@@ -13,13 +16,13 @@ class CouplePoint:
         self.P2 = P2
 
     def __repr__(self):
-        return "[{},{}]".format(self.P1, self.P2)
+        return "[ {} , {} ]".format(self.P1, self.P2)
 
     def parent(self):
-        return (self.P1.curve(), self.P2.curve())
+        return GenusTwoProductStructure(*self.curves())
 
     def curves(self):
-        return self.parent()
+        return (self.P1.curve(), self.P2.curve())
 
     def points(self):
         return self.P1, self.P2
@@ -32,17 +35,6 @@ class CouplePoint:
         Computes [2] P = ([2] P1, [2] P2)
         """
         return ZZ(2) * self
-
-    def double_iter(self, n):
-        """
-        Compute [2^n] P = ([2^n] P1, [2^n] P2)
-        """
-        # When the scalar is a python int, then
-        # sagemath does multiplication naively, when
-        # the scalar in a Sage type, it instead calls
-        # _acted_upon_, which calls pari, which is fast
-        m = ZZ(2**n)
-        return m * self
 
     def __getitem__(self, i):
         # Operator to get self[i].
@@ -66,16 +58,17 @@ class CouplePoint:
         if other == 0:
             E1, E2 = self.parent()
             return self.P1 == E1(0) and self.P2 == E2(0)
+        
         return self.P1 == other.P1 and self.P2 == other.P2
 
     def __add__(self, other):
-        return CouplePoint(self.P1 + other.P1, self.P2 + other.P2)
+        return ProductPoint(self.P1 + other.P1, self.P2 + other.P2)
 
     def __sub__(self, other):
-        return CouplePoint(self.P1 - other.P1, self.P2 - other.P2)
+        return ProductPoint(self.P1 - other.P1, self.P2 - other.P2)
 
     def __neg__(self):
-        return CouplePoint(-self.P1, -self.P2)
+        return ProductPoint(-self.P1, -self.P2)
 
     def __mul__(self, m):
         """
@@ -86,10 +79,13 @@ class CouplePoint:
         # the scalar in a Sage type, it instead calls
         # _acted_upon_, which calls pari, which is fast
         m = ZZ(m)
-        return CouplePoint(m * self.P1, m * self.P2)
+        return ProductPoint(m * self.P1, m * self.P2)
 
     def __rmul__(self, m):
         return self * m
+    
+    def __hash__(self):
+        return hash((self.P1, self.P2))
 
     def weil_pairing(self, other, n):
         """
@@ -98,7 +94,7 @@ class CouplePoint:
 
             e_n(P, Q) = e_n(P1, Q1) * e_n(P2, Q2)
         """
-        if not isinstance(other, CouplePoint):
+        if not isinstance(other, ProductPoint):
             raise TypeError("Both inputs must be couple points")
 
         P1, P2 = self.points()

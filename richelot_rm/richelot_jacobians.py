@@ -1,6 +1,6 @@
 from sage.all import Matrix, GF, PolynomialRing, EllipticCurve, HyperellipticCurve, vector, ZZ
 
-from couple_point import CouplePoint
+from richelot_rm.product_point import ProductPoint
 
 def is_jac_kernel_split(h, kernel_generators):
     """
@@ -148,15 +148,6 @@ class RichelotCorr:
       (x-degree 4)
     """
     def __init__(self, G1, G2, H1, H2, hnew):
-        """
-        Initializes the Richelot correspondence.
-
-        :param G1: First quadratic factor of the domain curve polynomial.
-        :param G2: Second quadratic factor of the domain curve polynomial.
-        :param H1: First quadratic factor of the codomain curve polynomial.
-        :param H2: Second quadratic factor of the codomain curve polynomial.
-        :param hnew: The polynomial of the codomain curve.
-        """
         assert G1[2].is_one() and G2[2].is_one()
         self.G1 = G1
         self.G2 = G2
@@ -223,15 +214,6 @@ class RichelotCorr:
         return self.jacobian([Dx, Dy])
 
 def FromJacToJac(G1, G2, G3):
-    """
-    Computes a Richelot isogeny between two Jacobians of hyperelliptic curves.
-
-    :param G1: First quadratic factor of the curve polynomial.
-    :param G2: Second quadratic factor of the curve polynomial.
-    :param G3: Third quadratic factor of the curve polynomial. Cannot be a linear combination of G1 and G2.
-    :return: A tuple (h_new, phi) where phi is a function that computes the image of a RichelotJacobianPoint
-      under the isogeny with kernel <P, Q> where P, Q correspond to the splittings G1 G2.
-    """
     h = G1 * G2 * G3
     Rx = h.parent()
     x = Rx.gen()
@@ -426,7 +408,7 @@ def FromJacToProd(G1, G2, G3):
             assert yP2**2 == p2(xP2)
             E2_image = E2(morphE2(xP2, yP2))
 
-        return CouplePoint(E1_image, E2_image)
+        return ProductPoint(E1_image, E2_image)
 
     return (E1, E2), isogeny
 

@@ -1,7 +1,16 @@
-from sage.all import is_prime, GF, Integers, identity_matrix, vector, HyperellipticCurve, set_random_seed, randint
-from couple_point import CouplePoint
-from richelot_products import get_arbitrary_square_example
-from richelot_rm_utils import RMVertex, get_computable_isogeny, golden_ratio_action_on_symplectic_torsion
+from sage.all import (
+    is_prime,
+    GF,
+    set_random_seed,
+    randint,
+)
+from richelot_rm.product_point import ProductPoint
+from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
+from richelot_rm_utils import (
+    RMVertex,
+    get_computable_isogeny,
+    golden_ratio_action_on_symplectic_torsion,
+)
 
 ### Fixed Parameters ###
 # e = 43
@@ -12,10 +21,20 @@ p = 2**e * f - 1
 assert is_prime(p)
 assert p % 4 == 3
 E1, E2 = get_arbitrary_square_example(p)
-P2e_1, Q2e_1 = E1.torsion_basis(2 ** e)
+P2e_1, Q2e_1 = E1.torsion_basis(2**e)
 P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
-torsion_generators = [CouplePoint(P2e_1, E2(0)), CouplePoint(E1(0), P2e_2), CouplePoint(Q2e_1, E2(0)), CouplePoint(E1(0), Q2e_2)]
-initial_vertex = RMVertex((E1, E2), e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e))
+torsion_generators = [
+    ProductPoint(P2e_1, E2(0)),
+    ProductPoint(E1(0), P2e_2),
+    ProductPoint(Q2e_1, E2(0)),
+    ProductPoint(E1(0), Q2e_2),
+]
+initial_vertex = RMVertex(
+    (E1, E2), e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e)
+)
+
+print(type(E1))
+raise NotImplementedError("This file is not ready to run yet.")
 
 def hash_message():
     ### Hash a random message ###
@@ -29,11 +48,14 @@ def hash_message():
         phi_kernel = kernels[m[i]]
         phi_subspace = subspaces[m[i]]
         av, phi = get_computable_isogeny(current_vertex, phi_kernel)
-        assert phi(phi_kernel[0]) == 0 and phi(phi_kernel[1]) == 0, f"Kernel not mapped to 0: {phi(phi_kernel[0])}, {phi(phi_kernel[1])}"
+        assert (
+            phi(phi_kernel[0]) == 0 and phi(phi_kernel[1]) == 0
+        ), f"Kernel not mapped to 0: {phi(phi_kernel[0])}, {phi(phi_kernel[1])}"
 
         next_vertex = current_vertex.get_neighbor(av, phi, phi_subspace)
 
         current_vertex = next_vertex
+
 
 # hash_message()
 
