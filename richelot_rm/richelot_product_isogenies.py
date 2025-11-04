@@ -220,6 +220,7 @@ def product_to_jacobian_2_isogeny(kernel):
         raise ValueError("Input is not a valid 2-torsion kernel.")
 
     gen1, gen2 = kernel
+    
     E1, E2 = gen1.curves()
     if is_bad_elliptic_curve_model(E1):
         E1, iso1 = fix_curve_model(E1)
@@ -236,7 +237,6 @@ def product_to_jacobian_2_isogeny(kernel):
 
     P1, P2 = gen1
     Q1, Q2 = gen2
-
     Fp2 = E1.base()
     Rx = PolynomialRing(Fp2, name="x")
     x = Rx.gen()
@@ -269,6 +269,7 @@ def product_to_jacobian_2_isogeny(kernel):
         # The image of P
         if P != 0:
             xP, yP = P.xy()
+            assert h - (Rx(yP / s1))**2 % (s1 * x**2 + s2 - xP) == 0, f"Point P is not in the kernel. {h - (Rx(yP / s1))**2 % (s1 * x**2 + s2 - xP)}"
             div_P = J([s1 * x**2 + s2 - xP, Rx(yP / s1)])
         else:
             div_P = J(0)

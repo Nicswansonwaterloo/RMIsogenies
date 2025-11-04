@@ -2,7 +2,6 @@ from sage.all import Matrix, GF, vector, HyperellipticCurve, EllipticCurve
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure, GenusTwoProductStructure
 from richelot_rm.jacobian_point import JacobianPoint
 from richelot_rm.product_point import ProductPoint
-from richelot_rm.richelot_jacobians import get_isogeny_from_jacobian_two_kernel
 
 
 def is_2_kernel_jac(kernel):
