@@ -8,46 +8,16 @@ from sage.all import (
     randint,
     PolynomialRing,
     randint,
-    shuffle,
 )
 import scipy as sp
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 from richelot_rm.richelot_jacobian_isogeny import *
-from itertools import product
-
-
-def get_2_symplectic_basis(g2_structure: GenusTwoJacobianStructure):
-    J = g2_structure.jac
-    Rx = g2_structure.Rx
-    x = g2_structure.x
-    h = g2_structure.h
-    roots = h.roots(multiplicities=False)
-    if h.degree() == 6:
-        assert len(roots) == 6 
-    elif h.degree() == 5:
-        assert len(roots) == 5 
-    shuffle(roots)
-
-    T1x = (x - roots[0]) * (x - roots[1])
-    T3x = (x - roots[0]) * (x - roots[2])  # must share a factor with T1, none others
-    T2x = (x - roots[3]) * (x - roots[4])  # must share a factor with T4, none others
-    if h.degree() == 5:
-        T4x = (x - roots[3])  # must share a factor with T2, none others
-    else:
-        T4x = (x - roots[3]) * (x - roots[5])  # must share a factor with T2, none others
-
-    T1 = JacobianPoint(J([Rx(T1x), Rx(0)]))
-    T2 = JacobianPoint(J([Rx(T2x), Rx(0)]))
-    T3 = JacobianPoint(J([Rx(T3x), Rx(0)]))
-    T4 = JacobianPoint(J([Rx(T4x), Rx(0)]))
-
-    return [T1, T2, T3, T4]
 
 
 def get_all_2_kernels(
     g2_structure: GenusTwoJacobianStructure, randomize_generators=False
 ):
-    symplectic_basis = get_2_symplectic_basis(g2_structure)
+    symplectic_basis = get_symplectic_two_torsion_jac(g2_structure)
     V = VectorSpace(GF(2), 4)
     B = Matrix(GF(2), [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
     subspaces = []
@@ -112,7 +82,7 @@ def test_split_isogeny_example():
     assert isogeny(split_kernel[0]) == 0
     assert isogeny(split_kernel[1]) == 0
 
-    Ts_img = [isogeny(T) for T in get_2_symplectic_basis(g2_structure)]
+    Ts_img = [isogeny(T) for T in get_symplectic_two_torsion_jac(g2_structure)]
     Ts_img += [ProductPoint(codomain[0](0), codomain[1](0))]
 
     Ts_img_set = set()
@@ -196,78 +166,46 @@ def test_type_5():
     assert g2_structure.get_isomorphism_class_invariants() in jacobian_codomains
 
 
-def test_type_3():
-    p = 2**11 * 3 - 1
-    Fp2 = GF(p**2)
-    z2 = Fp2.gen()
-    Rx = PolynomialRing(Fp2, "x")
-    x = Rx.gen()
-    u = Fp2.random_element()
-    h = (x**2 - 1) * (x**2 - u**2) * (x**2 - (1 / u**2))
-    g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
-    assert len(kernels) == 15
-    assert all(is_2_kernel_jac(kernel) for kernel in kernels)
-
-    split_kernels = [kernel for kernel in kernels if is_2_kernel_jac_split(kernel)]
-    non_split_kernels = [
-        kernel for kernel in kernels if not is_2_kernel_jac_split(kernel)
-    ]
-
-    product_codomains = set()
-    for kernel in split_kernels:
-        codomain, isogeny = jacobian_to_product_2_isogeny(kernel)
-        product_codomains.add((codomain[0].j_invariant(), codomain[1].j_invariant()))
-
-    jacobian_codomains = set()
-    for kernel in non_split_kernels:
-        codomain, isogeny = jacobian_to_jacobian_2_isogeny(kernel)
-        jacobian_codomains.add(codomain.get_isomorphism_class_invariants())
-
-    # From Florian and Smith
-    assert len(split_kernels) == 6 or len(split_kernels) == 2
-    assert len(product_codomains) == 2 or len(product_codomains) == 3
-    assert len(jacobian_codomains) == 5 or len(jacobian_codomains) == 6
-    assert g2_structure.get_isomorphism_class_invariants() in jacobian_codomains
-
-
-def test_type_3():
-    p = 2**11 * 3 - 1
-    Fp2 = GF(p**2)
-    z2 = Fp2.gen()
-    Rx = PolynomialRing(Fp2, "x")
-    x = Rx.gen()
-    u = Fp2.random_element()
-    h = (x**2 - 1) * (x**2 - u**2) * (x**2 - (1 / u**2))
-    g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
-    assert len(kernels) == 15
-    assert all(is_2_kernel_jac(kernel) for kernel in kernels)
-
-    split_kernels = [kernel for kernel in kernels if is_2_kernel_jac_split(kernel)]
-    non_split_kernels = [
-        kernel for kernel in kernels if not is_2_kernel_jac_split(kernel)
-    ]
-
-    product_codomains = set()
-    for kernel in split_kernels:
-        codomain, isogeny = jacobian_to_product_2_isogeny(kernel)
-        product_codomains.add((codomain[0].j_invariant(), codomain[1].j_invariant()))
-
-    jacobian_codomains = set()
-    for kernel in non_split_kernels:
-        codomain, isogeny = jacobian_to_jacobian_2_isogeny(kernel)
-        jacobian_codomains.add(codomain.get_isomorphism_class_invariants())
-
-    # From Florian and Smith
-    assert len(split_kernels) == 6 or len(split_kernels) == 2
-    assert len(product_codomains) == 2 or len(product_codomains) == 3
-    assert len(jacobian_codomains) == 5 or len(jacobian_codomains) == 6
-    assert g2_structure.get_isomorphism_class_invariants() in jacobian_codomains
-
 def test_type_4():
     p = 2**11 * 3 - 1
     Fp2 = GF(p**2)
+    assert 3 | p**2 - 1
+    zeta_3 = Fp2.multiplicative_generator() ** ((p**2 - 1) // 3)
+    Rx = PolynomialRing(Fp2, "x")
+    x = Rx.gen()
+    u = Fp2.random_element()
+    sv = (u + 1) * (u - zeta_3) / ((u - 1) * (u + zeta_3))
+    tv = (u + 1) * (u - zeta_3**2) / ((u - 1) * (u + zeta_3**2))
+    h = (x**2 - 1) * (x**2 - sv**2) * (x**2 - tv**2)
+    g2_structure = GenusTwoJacobianStructure(h)
+    kernels = get_all_2_kernels(g2_structure)
+    assert len(kernels) == 15
+    assert all(is_2_kernel_jac(kernel) for kernel in kernels)
+
+    split_kernels = [kernel for kernel in kernels if is_2_kernel_jac_split(kernel)]
+    non_split_kernels = [
+        kernel for kernel in kernels if not is_2_kernel_jac_split(kernel)
+    ]
+
+    product_codomains = set()
+    for kernel in split_kernels:
+        codomain, isogeny = jacobian_to_product_2_isogeny(kernel)
+        product_codomains.add((codomain[0].j_invariant(), codomain[1].j_invariant()))
+
+    jacobian_codomains = set()
+    for kernel in non_split_kernels:
+        codomain, isogeny = jacobian_to_jacobian_2_isogeny(kernel)
+        jacobian_codomains.add(codomain.get_isomorphism_class_invariants())
+
+    # From Florian and Smith
+    assert len(split_kernels) == 3
+    assert len(product_codomains) == 1 or len(product_codomains) == 2 or len(product_codomains) == 3
+    assert len(jacobian_codomains) == 6
+
+
+def test_type_3():
+    p = 2**11 * 3 - 1
+    Fp2 = GF(p**2)
     z2 = Fp2.gen()
     Rx = PolynomialRing(Fp2, "x")
     x = Rx.gen()
@@ -298,10 +236,10 @@ def test_type_4():
     assert len(product_codomains) == 2 or len(product_codomains) == 3
     assert len(jacobian_codomains) == 5 or len(jacobian_codomains) == 6
     assert g2_structure.get_isomorphism_class_invariants() in jacobian_codomains
-
 
 if __name__ == "__main__":
     test_split_isogeny_example()
     test_type_6()
     test_type_5()
+    test_type_4()
     test_type_3()

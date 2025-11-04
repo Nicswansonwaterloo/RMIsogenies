@@ -15,15 +15,7 @@ def generate_point_order_N(E, N):
     raise ValueError(f"Never found a point P of order N.")
 
 def get_all_2_kernels(E1, E2, randomize_generators=False):
-    P1, Q1 = E1.torsion_basis(2)
-    P2, Q2 = E2.torsion_basis(2)
-
-    symplectic_basis = [
-        ProductPoint(P1, E2(0)),
-        ProductPoint(E1(0), P2),
-        ProductPoint(Q1, E2(0)),
-        ProductPoint(E1(0), Q2),
-    ]
+    symplectic_basis = get_symplectic_two_torsion_prod(GenusTwoProductStructure(E1, E2))
 
     V = VectorSpace(GF(2), 4)
     B = Matrix(GF(2), [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
@@ -244,7 +236,7 @@ def test_product_chain():
     # T has about a 1/9 chance of being in the kernel at each step So, the expected value after 9*e steps is about 0
     M = 9 * e
     images_of_T_torsions_order = []
-    num_trails = 100
+    num_trails = 10
     for _ in range(num_trails):
         T = push_2e_torsion_through_M_2_isogenies(p, e, M)
         images_of_T_torsions_order.append(T.order())

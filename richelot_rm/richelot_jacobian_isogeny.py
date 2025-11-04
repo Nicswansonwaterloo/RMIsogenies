@@ -2,6 +2,7 @@ from sage.all import Matrix, GF, vector, HyperellipticCurve, EllipticCurve
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure, GenusTwoProductStructure
 from richelot_rm.jacobian_point import JacobianPoint
 from richelot_rm.product_point import ProductPoint
+from richelot_rm.richelot_jacobians import get_isogeny_from_jacobian_two_kernel
 
 
 def is_2_kernel_jac(kernel):
@@ -273,3 +274,35 @@ def jacobian_to_jacobian_2_isogeny(kernel):
         return JacobianPoint(jac_divisor)
     
     return codomain, isogeny
+
+def get_symplectic_two_torsion_jac(jac_structure: GenusTwoJacobianStructure):
+    J = jac_structure.jac
+    Rx = jac_structure.Rx
+    x = jac_structure.x
+    h = jac_structure.h
+    roots = h.roots(multiplicities=False)
+    if h.degree() == 6:
+        assert len(roots) == 6 
+    elif h.degree() == 5:
+        assert len(roots) == 5 
+        
+    T1x = (x - roots[0]) * (x - roots[1])
+    T3x = (x - roots[0]) * (x - roots[2])  # must share a factor with T1, none others
+    T2x = (x - roots[3]) * (x - roots[4])  # must share a factor with T4, none others
+    if h.degree() == 5:
+        T4x = (x - roots[3])  # must share a factor with T2, none others
+    else:
+        T4x = (x - roots[3]) * (x - roots[5])  # must share a factor with T2, none others
+
+    T1 = JacobianPoint(J([Rx(T1x), Rx(0)]))
+    T2 = JacobianPoint(J([Rx(T2x), Rx(0)]))
+    T3 = JacobianPoint(J([Rx(T3x), Rx(0)]))
+    T4 = JacobianPoint(J([Rx(T4x), Rx(0)]))
+
+    return [T1, T2, T3, T4]
+
+
+def compute_2_isogeny_from_jacobian(kernel):
+    if is_2_kernel_jac_split(kernel):
+        return jacobian_to_product_2_isogeny(kernel)
+    return jacobian_to_jacobian_2_isogeny(kernel)

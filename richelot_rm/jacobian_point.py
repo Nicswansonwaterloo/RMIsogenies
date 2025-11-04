@@ -1,6 +1,5 @@
 from sage.schemes.hyperelliptic_curves.jacobian_morphism import JacobianMorphism_divisor_class_field
-from richelot_rm.genus_two_structures import GenusTwoJacobianStructure, GenusTwoProductStructure
-from richelot_rm.product_point import ProductPoint
+from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 
 """
 A Wrapper for points that live on a genus_two_jacobian_structure
@@ -82,7 +81,7 @@ class JacobianPoint:
         if self.D2 != 0 or other.D2 != 0:
             raise ValueError("Trying to call Weil pairing n = 2 on non 2-torsion points")
         
-        D1_prime, _ = other.points()
+        D1_prime = other.D1
         if self.D1.gcd(D1_prime) == 1:
             return 1
         else:

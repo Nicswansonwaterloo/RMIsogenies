@@ -164,6 +164,31 @@ def is_2_kernel_prod_loop(kernel):
 
     return False
 
+def get_loop_2_isogeny(kernel):
+    if not is_2_kernel_prod_loop(kernel):
+        raise ValueError("Input is not an isomorphism-induced 2-torsion kernel.")
+    gen1, gen2 = kernel
+    E1 = gen1[0].curve()
+    E2 = gen1[1].curve()
+    j1 = E1.j_invariant()
+    j2 = E2.j_invariant()
+    if j1 == j2:
+        # All loops come from isomorphisms
+        # if kernel is of the form (P, P), (Q, Q), then it the loop is the endomorphism:
+        # [1 -1]
+        # [-1 1]
+        iso = E1.isomorphism_to(E2)
+        if iso(gen1[0]) == gen1[1] and iso(gen2[0]) == gen2[1]:
+            def isogeny(cp_pt: ProductPoint):
+                P, Q = cp_pt
+                return ProductPoint(iso(P) - Q, -iso(P) + Q)
+            codomain = GenusTwoProductStructure(E2, E2)
+            return codomain, isogeny
+
+    raise NotImplementedError(
+        "Isomorphism-induced isogenies (LOOPS) are not yet implemented. You can check if a kernel is isomorphism-induced with is_2_kernel_isomorphism_induced(kernel) function."
+    )
+
 
 def is_bad_elliptic_curve_model(E):
     if E.a1() != 0 or E.a3() != 0:
@@ -259,13 +284,23 @@ def product_to_jacobian_2_isogeny(kernel):
 
     return codomain, isogeny
 
+def get_symplectic_two_torsion_prod(prod_structure: GenusTwoProductStructure):
+    P1, Q1 = prod_structure.E1.torsion_basis(2)
+    P2, Q2 = prod_structure.E2.torsion_basis(2)
+
+    symplectic_basis = [
+        ProductPoint(P1, prod_structure.E2(0)),
+        ProductPoint(prod_structure.E1(0), P2),
+        ProductPoint(Q1, prod_structure.E2(0)),
+        ProductPoint(prod_structure.E1(0), Q2),
+    ]
+
+    return symplectic_basis
 
 def compute_2_isogeny_from_product(kernel):
     if is_2_kernel_diagonal(kernel):
         return get_diagonal_2_isogeny(kernel)
     elif is_2_kernel_prod_loop(kernel):
-        raise NotImplementedError(
-            "Isomorphism-induced isogenies (LOOPS) are not yet implemented. You can check if a kernel is isomorphism-induced with is_2_kernel_isomorphism_induced(kernel) function."
-        )
+        return get_loop_2_isogeny(kernel)
     else:
         return product_to_jacobian_2_isogeny(kernel)

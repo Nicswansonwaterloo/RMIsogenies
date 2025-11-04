@@ -1,4 +1,4 @@
-from sage.all import HyperellipticCurve, GF
+from sage.all import HyperellipticCurve
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 
 class GenusTwoStructure:
@@ -14,6 +14,7 @@ class GenusTwoStructure:
 
     def is_jacobian(self):
         return not self.is_product
+    
 
 class GenusTwoProductStructure(GenusTwoStructure):
     """
@@ -26,7 +27,7 @@ class GenusTwoProductStructure(GenusTwoStructure):
         super().__init__(is_product=True)
 
     def __repr__(self):
-        return f"Product: ( {self.E1.a_invariants()}, {self.E2.a_invariants()} )"
+        return f"Pair of Elliptic curves with a invariants: ({self.E1.a_invariants()}, {self.E2.a_invariants()} )"
 
     def __eq__(self, other):
         if not isinstance(other, GenusTwoProductStructure):
@@ -59,6 +60,7 @@ class GenusTwoProductStructure(GenusTwoStructure):
             return self.E2
         else:
             raise IndexError("Index {} is out of range.".format(i))
+        
 
 class GenusTwoJacobianStructure(GenusTwoStructure):
     """
@@ -76,7 +78,7 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
         super().__init__(is_product=False)
 
     def __repr__(self):
-        return f"{self.h}"
+        return f"Jacobian of {self.h}"
     
     def __eq__(self, other):
         if not isinstance(other, GenusTwoJacobianStructure):
@@ -97,4 +99,3 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
             raise ValueError(f"Invalid arguments {args} to create a point on {self}.")
         D = self.jac(args[0])
         return D
-    
