@@ -53,12 +53,12 @@ class JacobianPoint:
 
     def __add__(self, other):
         if not isinstance(other, JacobianPoint):
-            raise TypeError("Cannot add Jacobian point to non-Jacobian point.")
+            raise TypeError(f"Cannot add Jacobian point to non-Jacobian point. {type(other)}")
         return JacobianPoint(self.D + other.D)
 
     def __sub__(self, other):
         if not isinstance(other, JacobianPoint):
-            raise TypeError("Cannot subtract Jacobian point from non-Jacobian point.")
+            raise TypeError(f"Cannot subtract Jacobian point from non-Jacobian point. {type(other)}")
         return JacobianPoint(self.D - other.D)
 
     def __neg__(self):

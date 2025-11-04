@@ -163,7 +163,10 @@ def test_isogeny_from_product_two_kernel():
                 j1 = codomain[0].j_invariant()
                 j2 = codomain[1].j_invariant()
                 if j1 == j2:
-                    squares += 1
+                    if j1 == E1.j_invariant():
+                        loops += 1
+                    else:
+                        squares += 1
                 else:
                     products += 1
             else:
@@ -241,8 +244,40 @@ def test_product_chain():
         T = push_2e_torsion_through_M_2_isogenies(p, e, M)
         images_of_T_torsions_order.append(T.order())
 
-    print(sorted(images_of_T_torsions_order))
     assert sum(images_of_T_torsions_order) / num_trails < 1 + 1e-5
+
+def test_prod_to_jacobian():
+    p = 2**11 * 3 - 1
+    prod = get_arbitrary_product_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    for gen1, gen2 in maximal_isotropic_subgroups:
+        try:
+            codomain, isogeny = compute_2_isogeny_from_product((gen1, gen2))
+        except NotImplementedError as e:
+            continue
+        if not codomain.is_product:
+            P = E1.random_point()
+            Q = E2.random_point()
+            cp_pt = ProductPoint(P, Q)
+            cp_image = isogeny(cp_pt)
+            if cp_pt.order() == 2:
+                continue
+            assert 2 * cp_image != 0
+
+            Ts_img = [isogeny(T) for T in get_symplectic_two_torsion_prod(prod)]
+            Ts_img += [JacobianPoint(codomain.jac(0))]
+
+            Ts_img_set = set()
+            for pt in Ts_img:
+                for other_pt in Ts_img:
+                    sum_pt = pt + other_pt
+                    Ts_img_set.add(sum_pt)
+
+            assert len(Ts_img_set) == 4, f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+
+
+    
 
 if __name__ == "__main__":
     test_product_creation()
@@ -251,6 +286,7 @@ if __name__ == "__main__":
     test_isomorphism_induced_product_loops()
     for i in range(1):
         test_isogeny_from_product_two_kernel()
-    test_product_chain()
+    # test_product_chain()
+    test_prod_to_jacobian()
 
 

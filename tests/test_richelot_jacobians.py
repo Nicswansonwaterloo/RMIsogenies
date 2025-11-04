@@ -1,5 +1,4 @@
-from matplotlib.pylab import rand
-from numpy import absolute
+
 from sage.all import (
     VectorSpace,
     Matrix,

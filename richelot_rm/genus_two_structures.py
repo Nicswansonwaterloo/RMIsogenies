@@ -71,8 +71,6 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
         self.Rx = h.parent()
         self.x = self.Rx.gen()
         self.h = h
-        # h will be monic
-        self.h = self.h.monic()
         self.H = HyperellipticCurve(self.h)
         self.jac = self.H.jacobian()
         super().__init__(is_product=False)
@@ -83,7 +81,7 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
     def __eq__(self, other):
         if not isinstance(other, GenusTwoJacobianStructure):
             return False
-        return self.h == other.h
+        return self.h.monic() == other.h.monic()
     
     def get_isomorphism_class_invariants(self):
         return absolute_igusa_invariants_kohel(self.h)

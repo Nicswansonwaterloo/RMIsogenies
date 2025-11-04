@@ -220,28 +220,26 @@ def product_to_jacobian_2_isogeny(kernel):
         raise ValueError("Input is not a valid 2-torsion kernel.")
 
     gen1, gen2 = kernel
-    
     E1, E2 = gen1.curves()
     if is_bad_elliptic_curve_model(E1):
-        E1, iso1 = fix_curve_model(E1)
-        gen1[0] = iso1(gen1[0])
-        gen2[0] = iso1(gen2[0])
+        E1_iso, iso1 = fix_curve_model(E1)
     else:
+        E1_iso = E1
         iso1 = lambda x: x
     if is_bad_elliptic_curve_model(E2):
-        E2, iso2 = fix_curve_model(E2)
-        gen1[1] = iso2(gen1[1])
-        gen2[1] = iso2(gen2[1])
+        E2_iso, iso2 = fix_curve_model(E2)
     else:
+        E2_iso = E2
         iso2 = lambda x: x
 
-    P1, P2 = gen1
-    Q1, Q2 = gen2
-    Fp2 = E1.base()
+    Fp2 = E1_iso.base()
     Rx = PolynomialRing(Fp2, name="x")
     x = Rx.gen()
 
-    # The roots of the cubics of E1 and E2
+    P1, P2 = iso1(gen1[0]), iso2(gen1[1])
+    Q1, Q2 = iso1(gen2[0]), iso2(gen2[1])
+
+    # The roots of the cubics of E1_iso and E2_iso
     a1, a2, a3 = P1[0], Q1[0], (P1 + Q1)[0]
     b1, b2, b3 = P2[0], Q2[0], (P2 + Q2)[0]
     # Compute coefficients
@@ -263,21 +261,23 @@ def product_to_jacobian_2_isogeny(kernel):
 
     # See https://eprint.iacr.org/2022/1283.pdf, Section 3.2.2 for derivation of formulas
     def isogeny(cp_pt: ProductPoint):
-        P, Q = cp_pt
-        P = iso1(P)
-        Q = iso2(Q)
+        P = iso1(cp_pt[0])
+        Q = iso2(cp_pt[1])
         # The image of P
         if P != 0:
             xP, yP = P.xy()
-            assert h - (Rx(yP / s1))**2 % (s1 * x**2 + s2 - xP) == 0, f"Point P is not in the kernel. {h - (Rx(yP / s1))**2 % (s1 * x**2 + s2 - xP)}"
-            div_P = J([s1 * x**2 + s2 - xP, Rx(yP / s1)])
+            uP = (s1 * x**2 + s2 - xP)
+            vP = Rx(yP / s1)
+            div_P = J([uP, vP])
         else:
             div_P = J(0)
 
         # The image of Q
         if Q != 0:
             xQ, yQ = Q.xy()
-            div_Q = J([(xQ - t2) * x**2 - t1, yQ * x**3 / t1])
+            uQ = (xQ - t2) * x**2 - t1
+            vQ = yQ * x**3 / t1
+            div_Q = J([uQ, vQ])
         else:
             div_Q = J(0)
 

@@ -29,6 +29,9 @@ def test_square_rm():
     vertex = RMVertex(
         square, e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e)
     )
+    rm_kernels, subspaces = vertex._get_all_two_kernels()
+    assert len(rm_kernels) == 5
+
     neighbors = vertex.get_neighbors()
     edges = {}
     edges[vertex] = neighbors
