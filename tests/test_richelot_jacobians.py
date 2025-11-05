@@ -99,7 +99,7 @@ def test_type_6():
     Rx = PolynomialRing(Fp2, "x")
     x = Rx.gen()
     h = x**5 + x
-    assert 4 | p**2 - 1
+    assert (p**2 - 1) % 4 == 0
     # since 4 | p^2 - 1, this polynomial splits completely and is square free
     g2_structure = GenusTwoJacobianStructure(h)
     kernels = get_all_2_kernels(g2_structure)
@@ -135,7 +135,7 @@ def test_type_5():
     Rx = PolynomialRing(Fp2, "x")
     x = Rx.gen()
     h = x**6 + 1
-    assert 6 | p**2 - 1
+    assert (p**2 - 1) % 6 == 0
     # since 6 | p^2 - 1, this polynomial splits completely and is square free
     g2_structure = GenusTwoJacobianStructure(h)
     kernels = get_all_2_kernels(g2_structure)
@@ -168,7 +168,7 @@ def test_type_5():
 def test_type_4():
     p = 2**11 * 3 - 1
     Fp2 = GF(p**2)
-    assert 3 | p**2 - 1
+    assert (p**2 - 1) % 3 == 0
     zeta_3 = Fp2.multiplicative_generator() ** ((p**2 - 1) // 3)
     Rx = PolynomialRing(Fp2, "x")
     x = Rx.gen()

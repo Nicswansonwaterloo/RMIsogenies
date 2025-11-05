@@ -38,7 +38,7 @@ class RMVertex(RichelotVertex):
                 subspaces.append(subspace)
         return kernels, subspaces
 
-    def _compute_all_neighbors(self):
+    def _compute_neighboring_isogenies(self):
         if self.computed_neighbors is None:
             kernels, subspaces = self._get_all_two_kernels()
             neighbors_with_edges = []
@@ -49,10 +49,9 @@ class RMVertex(RichelotVertex):
 
         return self.computed_neighbors
 
-    def get_neighbors(self):
-        neighbors_with_edges = self._compute_all_neighbors()
+    def get_neighbors_with_multiplicities(self):
+        neighbors_with_edges = self._compute_neighboring_isogenies()
         neighbors = []
-        print("Weil pairing action:\n", self.weil_pairing_two_torsion_action)
         for neighbor, phi, W in neighbors_with_edges:            
             id_2 = identity_matrix(GF(2), 2)
             # print(f"Neighbor \n{neighbor}\n W:\n{W}")

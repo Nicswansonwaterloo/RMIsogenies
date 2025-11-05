@@ -14,36 +14,6 @@ def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
     Zle = Integers(ell**e)
     return Matrix(Zle, [[0, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1]])
 
-
-def test_square_rm():
-    p = 2**11 * 3 - 1
-    e = 9
-    square = get_arbitrary_square_example(p)
-    E1, E2 = square.E1, square.E2
-    P2e_1, Q2e_1 = E1.torsion_basis(2**e)
-    P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
-    torsion_generators = [
-        ProductPoint(P2e_1, E2(0)),
-        ProductPoint(E1(0), P2e_2),
-        ProductPoint(Q2e_1, E2(0)),
-        ProductPoint(E1(0), Q2e_2),
-    ]
-    vertex = RMVertex(
-        square, e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e)
-    )
-    rm_kernels, subspaces = vertex._get_all_two_kernels()
-    assert len(rm_kernels) == 5
-
-    neighbors = vertex.get_neighbors()
-    edges = {}
-    edges[vertex] = neighbors
-    G = Graph(edges)
-    # Set vertex labels using get_type
-    labels = {v: v.get_type() for v in G.vertices()}
-    p = G.plot(vertex_labels=labels)
-    p.save("square_vertex_neighbors_RM.png")
-
-
 def test_random_walk():
     e = 43
     p = 2**e * 3 - 1
@@ -69,12 +39,13 @@ def test_random_walk():
         next_vertex = neighbors[randint(0, len(neighbors) - 1)]
         graph_dict[current_vertex] = neighbors
         current_vertex = next_vertex
-    G = Graph(graph_dict)
-    labels = {v: v.get_type() for v in G.vertices()}
-    p = G.plot(vertex_labels=labels)
-    p.save("random_walk_graph.png")
+    # G = Graph(graph_dict)
+    # labels = {v: v.get_type() for v in G.vertices()}
+    # p = G.plot(vertex_labels=labels)
+    # p.save("random_walk_graph.png")
 
 if __name__ == "__main__":
     check_tkz_graph()
     # test_square_rm()
-    test_random_walk()
+    for _ in range(100):
+        test_random_walk()
