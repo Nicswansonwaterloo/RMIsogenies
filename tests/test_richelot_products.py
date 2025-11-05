@@ -1,4 +1,3 @@
-from itertools import chain, product
 from richelot_rm.richelot_product_isogenies import *
 from sage.all import GF, Matrix, VectorSpace, ZZ, randint
 
@@ -144,6 +143,58 @@ def test_isomorphism_induced_product_loops():
         assert number_of_isomorphism_induced_kernels == 1
 
 
+def _test_isogenies_on_two_torsion_and_random(product, maximal_isotropic_subgroups):
+    assert len(maximal_isotropic_subgroups) == 15
+    E1, E2 = product
+    for gen1, gen2 in maximal_isotropic_subgroups:
+        codomain, isogeny = compute_2_isogeny_from_product((gen1, gen2))
+        if not codomain.is_product:
+            P = E1.random_point()
+            Q = E2.random_point()
+            cp_pt = ProductPoint(P, Q)
+            cp_image = isogeny(cp_pt)
+            if cp_pt.order() == 2:
+                continue
+            assert 2 * cp_image != 0
+
+            Ts_img = [isogeny(T) for T in get_symplectic_two_torsion_prod(product)]
+            Ts_img += [JacobianPoint(codomain.jac(0))]
+
+            Ts_img_set = set()
+            for pt in Ts_img:
+                for other_pt in Ts_img:
+                    sum_pt = pt + other_pt
+                    Ts_img_set.add(sum_pt)
+
+            assert len(Ts_img_set) == 4, f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+
+def test_loop_isogeny_from_product_two_kernel():
+    p = 2**11 * 3 - 1
+    prod = get_square_0_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+
+    prod = get_square_1728_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+
+    prod = get_0_and_1728_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+    
+    prod = get_0_product_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+
+    prod = get_1728_product_example(p)
+    E1, E2 = prod
+    maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
+    _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+
 def test_isogeny_from_product_two_kernel():
     def count_loops_products_squares_jacobians(E1, E2):
         maximal_isotropic_subgroups = get_all_2_kernels(
@@ -283,6 +334,8 @@ if __name__ == "__main__":
     test_product_creation()
     test_maximal_isotropic_subgroups_of_N_torsion()
     test_diagonal_isogenies()
+    for _ in range(300):
+        test_loop_isogeny_from_product_two_kernel()
     test_isomorphism_induced_product_loops()
     for i in range(1):
         test_isogeny_from_product_two_kernel()

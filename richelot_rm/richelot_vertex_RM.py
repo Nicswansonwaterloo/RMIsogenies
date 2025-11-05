@@ -1,4 +1,4 @@
-from sage.all import GF, identity_matrix, Integers
+from sage.all import GF, identity_matrix, Integers, Matrix
 import copy
 from richelot_rm.richelot_vertex import RichelotVertex
 from richelot_rm.genus_two_structures import GenusTwoStructure
@@ -24,6 +24,13 @@ class RMVertex(RichelotVertex):
         components = [int(vec[i]) * self.two_r_torsion_generators[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
 
+    # The way that the torsion is passed in get_neighbors, we can do something clever to make sure that the dual is always first.
+    # In particular, the dual kernel is always the one spanned by the last two kernel vectors:
+    # [ 0 0 ]
+    # [ 0 0 ]
+    # [ 1 0 ]
+    # [ 0 1 ]
+    # After this is added, the rest are ordered in a deterministic way.
     def _get_all_two_kernels(self):
         maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
         M_rm = self.rm_action_on_two_r_torsion.change_ring(GF(2))
@@ -33,9 +40,25 @@ class RMVertex(RichelotVertex):
             phi_subspace = M_rm * subspace
             P = subspace.augment(phi_subspace)
             if P.rank() == 2:
-                kernel = [self._vector_to_point(subspace.column(i)) for i in range(2)]
-                kernels.append(kernel)
                 subspaces.append(subspace)
+
+        W_dual = Matrix(GF(2), [[0, 0], [0, 0], [1, 0], [0, 1]])
+        assert W_dual in subspaces, "Dual kernel does not seem to perserve RM." # Should probably be an equality check, possibly does not happen on initial vertex depending...
+        # The way that the torsion is passed in get_neighbors, we can do something clever to make sure that the dual is always first.
+        # In particular, the dual kernel is always the one spanned by the last two kernel vectors:
+        # [ 0 0 ]
+        # [ 0 0 ]
+        # [ 1 0 ]
+        # [ 0 1 ]
+        # After this is added, the rest are ordered in a deterministic way.
+        subspaces.remove(W_dual)
+        subspaces.sort(key=lambda M: M.list())
+        subspaces.insert(0, W_dual)
+
+        for subspace in subspaces:
+            kernel_gens = [self._vector_to_point(col) for col in subspace.columns()]
+            kernels.append(kernel_gens)
+
         return kernels, subspaces
 
     def _compute_neighboring_isogenies(self):
@@ -51,8 +74,8 @@ class RMVertex(RichelotVertex):
 
     def get_neighbors_with_multiplicities(self):
         neighbors_with_edges = self._compute_neighboring_isogenies()
-        neighbors = []
-        for neighbor, phi, W in neighbors_with_edges:            
+        neighbors = {}
+        for neighbor, phi, W in neighbors_with_edges:
             id_2 = identity_matrix(GF(2), 2)
             # print(f"Neighbor \n{neighbor}\n W:\n{W}")
             A = W.transpose() * self.weil_pairing_two_torsion_action
@@ -106,7 +129,13 @@ class RMVertex(RichelotVertex):
             rm_action_prime[2:4, 0:2] /= 2
             rm_action_prime = rm_action_prime.change_ring(Integers(2 ** (self.r - 1)))
 
-            neighbors.append(
-                RMVertex(neighbor, self.r - 1, codomain_torsion_gens, rm_action_prime)
+            neighbor = RMVertex(
+                neighbor, self.r - 1, codomain_torsion_gens, rm_action_prime
             )
+
+            if neighbor in neighbors:
+                neighbors[neighbor] += 1
+            else:
+                neighbors[neighbor] = 1
+
         return neighbors

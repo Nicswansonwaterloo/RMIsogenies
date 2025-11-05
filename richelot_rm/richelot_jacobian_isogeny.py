@@ -225,7 +225,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
     J = g2_structure.jac
     h = g2_structure.h
     x = g2_structure.x
-
+    
     G1, _ = gen1
     G2, _ = gen2
     if G1[2] != 1 and G1[2] != 0:
@@ -304,6 +304,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
         Dx = (h_codomain - Py**2) // Px
         Dy = (-Py) % Dx
+
         assert (h_codomain - Dy**2) % Dx == 0, f"not div {(h_codomain - Dy**2) % Dx}"
         jac_divisor = codomain.jac([Dx, Dy])
         return JacobianPoint(jac_divisor)

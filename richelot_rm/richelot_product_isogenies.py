@@ -2,6 +2,7 @@ from sage.all import EllipticCurve, GF, Matrix, vector, PolynomialRing
 from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_curve
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
+from sympy import Q
 
 from richelot_rm.jacobian_point import JacobianPoint
 from richelot_rm.product_point import ProductPoint
@@ -134,6 +135,7 @@ def is_2_kernel_prod_loop(kernel):
     E2 = gen1[1].curve()
     j1 = E1.j_invariant()
     j2 = E2.j_invariant()
+    Fp2 = j1.parent()
     if j1 == j2:
         # All loops come from isomorphisms
         # if kernel is of the form (P, P), (Q, Q), then it the loop is the endomorphism:
@@ -144,23 +146,37 @@ def is_2_kernel_prod_loop(kernel):
             return True
 
         if j1 == 0:
-            raise NotImplementedError("The case j=0 is not yet implemented.")
-            # Cases: (\zeta P, P), (\zeta Q, Q) and (\zeta^2 P, P), (\zeta^2 Q, Q)
-            zeta = E1.automorphisms()[2]
-            P2_1 = iso(P2_1)
-            Q2_1 = iso(Q2_1)
-            if zeta(P2_1) == P2_2 and zeta(Q2_1) == Q2_2:
+            P1, P2 = gen1
+            Q1, Q2 = gen2
+            P1 = iso(P1)
+            Q1 = iso(Q1)
+            zeta = E2.automorphisms()[2]
+            # Bad kernel cases:
+            # kernel = (\zeta P, P), (\zeta Q, Q) 
+            # [\zeta^2 -1]
+            # [ 1    -\zeta]
+
+            if zeta(P1) == P2 and zeta(Q1) == Q2:
                 return True
-            if (zeta(zeta(P2_1)) == P2_2) and (zeta(zeta(Q2_1)) == Q2_2):
+
+            # kernel = (\zeta^2 P, P), (\zeta^2 Q, Q)
+            # [\zeta -1]
+            # [ 1   -\zeta^2]
+            if zeta(zeta(P1)) == P2 and zeta(zeta(Q1)) == Q2:
                 return True
             return False
 
         if j1 == 1728:
-            raise NotImplementedError("The case j=1728 is not yet implemented.")
+            P1, P2 = gen1
+            Q1, Q2 = gen2
+            P1 = iso(P1)
+            Q1 = iso(Q1)
             iota = E2.automorphisms()[2]  # The automorphism with iota^2 = -1
-            P2_1 = iso(P2_1)
-            Q2_1 = iso(Q2_1)
-            return iota(P2_1) == P2_2 and iota(Q2_1) == Q2_2
+            # Bad kernel case:
+            # kernel = (iota P, P), (iota Q, Q)
+            # [iota 1]
+            # [ 1   -iota]
+            return iota(P1) == P2 and iota(Q1) == Q2
 
     return False
 
@@ -184,6 +200,57 @@ def get_loop_2_isogeny(kernel):
                 return ProductPoint(iso(P) - Q, -iso(P) + Q)
             codomain = GenusTwoProductStructure(E2, E2)
             return codomain, isogeny
+        
+        if j1 == 0:
+            P1, P2 = gen1
+            Q1, Q2 = gen2
+            P1 = iso(P1)
+            Q1 = iso(Q1)
+            zeta = E2.automorphisms()[2]
+            # Bad kernel cases:
+            # kernel = (\zeta P, P), (\zeta Q, Q) 
+            # [\zeta^2 -1]
+            # [ 1    -\zeta]
+            if zeta(P1) == P2 and zeta(Q1) == Q2:
+                def isogeny(cp_pt: ProductPoint):
+                    P, Q = cp_pt
+                    P = iso(P)
+                    return ProductPoint(zeta(zeta(P)) - Q, P - zeta(Q))
+                
+                codomain = GenusTwoProductStructure(E2, E2)
+                return codomain, isogeny
+
+            # kernel = (\zeta^2 P, P), (\zeta^2 Q, Q)
+            # [\zeta -1]
+            # [ 1   -\zeta^2]
+            if zeta(zeta(P1)) == P2 and zeta(zeta(Q1)) == Q2:
+                def isogeny(cp_pt: ProductPoint):
+                    P, Q = cp_pt
+                    P = iso(P)
+                    return ProductPoint(zeta(P) - Q, P - zeta(zeta(Q)))
+                
+                codomain = GenusTwoProductStructure(E2, E2)
+                return codomain, isogeny
+            
+        if j1 == 1728:
+            P1, P2 = gen1
+            Q1, Q2 = gen2
+            P1 = iso(P1)
+            Q1 = iso(Q1)
+            iota = E2.automorphisms()[2]  # The automorphism with iota^2 = -1
+            # Bad kernel case:
+            # kernel = (iota P, P), (iota Q, Q)
+            # [iota 1]
+            # [ 1   -iota]
+            if iota(P1) == P2 and iota(Q1) == Q2:
+                def isogeny(cp_pt: ProductPoint):
+                    P, Q = cp_pt
+                    P = iso(P)
+                    return ProductPoint(iota(P) + Q, P - iota(Q))
+                
+                codomain = GenusTwoProductStructure(E2, E2)
+                return codomain, isogeny
+        
 
     raise NotImplementedError(
         "Isomorphism-induced isogenies (LOOPS) are not yet implemented. You can check if a kernel is isomorphism-induced with is_2_kernel_isomorphism_induced(kernel) function."

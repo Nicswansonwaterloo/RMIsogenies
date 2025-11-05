@@ -1,5 +1,4 @@
-from matplotlib.pylab import rand
-from sage.all import GF, Matrix, VectorSpace, Integers, Graph, randint, set_random_seed
+from sage.all import GF, Matrix, VectorSpace, Integers, Graph, randint, set_random_seed, is_prime
 from sage.graphs.graph_latex import check_tkz_graph
 
 from richelot_rm.product_point import ProductPoint
@@ -14,10 +13,9 @@ def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
     Zle = Integers(ell**e)
     return Matrix(Zle, [[0, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1]])
 
-def test_random_walk():
-    e = 43
+
+def get_cql_parameters(e):
     p = 2**e * 3 - 1
-    r = e - 2
     square = get_arbitrary_square_example(p)
     E1, E2 = square.E1, square.E2
     P2e_1, Q2e_1 = E1.torsion_basis(2**e)
@@ -28,24 +26,69 @@ def test_random_walk():
         ProductPoint(Q2e_1, E2(0)),
         ProductPoint(E1(0), Q2e_2),
     ]
-    current_vertex = RMVertex(
+    initial_vertex = RMVertex(
         square, e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e)
     )
+    return initial_vertex
+
+
+def take_random_walk(vertex, steps, verbose=False, allow_backtrack=False):
+    current_vertex = vertex
     next_vertex = None
     graph_dict = {}
-    for step in range(r):
-        print(f"Step {step}: @ vertex {current_vertex.get_type()}")
+    walk = []
+    for step in range(steps):
+        if verbose:
+            print(f"Step {step}: @ vertex {current_vertex}")
         neighbors = current_vertex.get_neighbors()
-        next_vertex = neighbors[randint(0, len(neighbors) - 1)]
+        random_choice = (
+            randint(0, len(neighbors) - 1)
+            if allow_backtrack
+            else randint(1, len(neighbors) - 1)
+        )
+        next_vertex = neighbors[random_choice]
         graph_dict[current_vertex] = neighbors
         current_vertex = next_vertex
-    # G = Graph(graph_dict)
-    # labels = {v: v.get_type() for v in G.vertices()}
-    # p = G.plot(vertex_labels=labels)
-    # p.save("random_walk_graph.png")
+        walk.append(current_vertex)
+
+    return walk, Graph(graph_dict)
+
+
+def test_random_walk():
+    # e = 43
+    e = 11
+    initial_vertex = get_cql_parameters(11)
+    walk, G = take_random_walk(
+        initial_vertex, e - 2, verbose=True, allow_backtrack=True
+    )
+    labels = {v: v.get_type() for v in G.vertices()}
+    non_walk = [v for v in G.vertices() if v not in walk]
+    p = G.plot(
+        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk}
+    )
+    p.save(f"test_output/rm_graph/random_walk_e={e}.png")
+
+
+def test_non_backtracking_random_walk():
+    # e = 827
+    # e = 470
+    # e = 216
+    e = 43
+    # e = 11
+    initial_vertex = get_cql_parameters(e)
+    walk, G = take_random_walk(
+        initial_vertex, e - 2, verbose=True, allow_backtrack=False
+    )
+    assert len(walk) == len(list(set(walk))), "Walk has backtracking!"
+    labels = {v: v.get_type() for v in G.vertices()}
+    non_walk = [v for v in G.vertices() if v not in walk and v != initial_vertex]
+    p = G.plot(
+        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk, "#99ffa8": [initial_vertex]}
+    )
+    p.save(f"test_output/rm_graph/random_non_backtracking_walk_e={e}.png")
+
 
 if __name__ == "__main__":
-    check_tkz_graph()
+    # check_tkz_graph()
     # test_square_rm()
-    for _ in range(100):
-        test_random_walk()
+    test_non_backtracking_random_walk()

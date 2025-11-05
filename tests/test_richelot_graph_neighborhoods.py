@@ -1,9 +1,14 @@
-from sage.all import GF, Graph, PolynomialRing
+from sage.all import GF, Graph, PolynomialRing, is_prime
 
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 from richelot_rm.richelot_product_isogenies import (
     get_arbitrary_product_example,
     get_arbitrary_square_example,
+    get_square_0_example,
+    get_square_1728_example,
+    get_0_product_example,
+    get_1728_product_example,
+    get_0_and_1728_example
 )
 from richelot_rm.richelot_vertex import RichelotVertex
 
@@ -23,7 +28,7 @@ def get_type_1_vertex(p):
 
 
 def get_type_2_vertex(p):
-    assert (p ** 2 - 1) % 5 == 0
+    assert (p**2 - 1) % 5 == 0
     Fp2 = GF(p**2)
     Fp2.zeta(5)
     Rx = PolynomialRing(Fp2, name="x")
@@ -64,6 +69,7 @@ def get_type_4_vertex(p):
     g2_structure = GenusTwoJacobianStructure(h)
     return RichelotVertex(g2_structure)
 
+
 def get_type_5_vertex(p):
     assert (p**2 - 1) % 6 == 0
     Fp2 = GF(p**2)
@@ -73,14 +79,16 @@ def get_type_5_vertex(p):
     g2_structure = GenusTwoJacobianStructure(h)
     return RichelotVertex(g2_structure)
 
+
 def get_type_6_vertex(p):
-    assert (p**2 - 12) % 3 == 0
+    assert (p**2 - 1) % 12 == 0
     Fp2 = GF(p**2)
     Rx = PolynomialRing(Fp2, name="x")
     x = Rx.gen()
     h = x**5 + x
     g2_structure = GenusTwoJacobianStructure(h)
     return RichelotVertex(g2_structure)
+
 
 def get_sage_graph_neighborhood_plot(initial_vertex: RichelotVertex):
     neighbors_with_mult = initial_vertex.get_neighbors_with_multiplicities()
@@ -113,11 +121,40 @@ def test_prod_vertex_neighbors():
     p.save("test_output/richelot_graph/prod_vertex_neighbors.png")
 
 
+def test_square_0_vertex_neighbors():
+    p = 2**11 * 3 - 1
+    square_0 = get_square_0_example(p)
+    initial_vertex = RichelotVertex(square_0)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/square_0_vertex_neighbors.png")
+
+    square_1728 = get_square_1728_example(p)
+    initial_vertex = RichelotVertex(square_1728)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/square_1728_vertex_neighbors.png")
+
+    product_0_and_1728 = get_0_and_1728_example(p)
+    initial_vertex = RichelotVertex(product_0_and_1728)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/product_0_and_1728_vertex_neighbors.png")
+
+    product_0 = get_0_product_example(p)
+    initial_vertex = RichelotVertex(product_0)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/product_0_vertex_neighbors.png")
+
+    product_1728 = get_1728_product_example(p)
+    initial_vertex = RichelotVertex(product_1728)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/product_1728_vertex_neighbors.png")
+
+
 def test_type_1_vertex_neighbors():
     p = 2**11 * 3 - 1
     vertex = get_type_1_vertex(p)
     p = get_sage_graph_neighborhood_plot(vertex)
     p.save("test_output/richelot_graph/type_1_vertex_neighbors.png")
+
 
 def test_type_2_vertex_neighbors():
     p = 2**11 * 3 - 1
@@ -146,6 +183,7 @@ def test_type_5_vertex_neighbors():
     p = get_sage_graph_neighborhood_plot(vertex)
     p.save("test_output/richelot_graph/type_5_vertex_neighbors.png")
 
+
 def test_type_6_vertex_neighbors():
     p = 2**11 * 3 - 1
     vertex = get_type_6_vertex(p)
@@ -153,13 +191,13 @@ def test_type_6_vertex_neighbors():
     p.save("test_output/richelot_graph/type_6_vertex_neighbors.png")
 
 
-
 if __name__ == "__main__":
-    test_square_vertex_neighbors()
-    test_prod_vertex_neighbors()
-    test_type_1_vertex_neighbors()
-    # test_type_2_vertex_neighbors()
-    test_type_3_vertex_neighbors()
-    test_type_4_vertex_neighbors()
-    test_type_5_vertex_neighbors()
-    test_type_6_vertex_neighbors()
+    # test_square_vertex_neighbors()
+    # test_prod_vertex_neighbors()
+    # test_type_1_vertex_neighbors()
+    # # test_type_2_vertex_neighbors()
+    # test_type_3_vertex_neighbors()
+    # test_type_4_vertex_neighbors()
+    # test_type_5_vertex_neighbors()
+    # test_type_6_vertex_neighbors()
+    test_square_0_vertex_neighbors()

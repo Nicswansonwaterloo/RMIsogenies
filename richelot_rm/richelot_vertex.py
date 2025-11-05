@@ -155,6 +155,7 @@ class RichelotVertex:
 
         return self.computed_neighbors
 
+    # This must be structured so that the first neighbor returned is the one corresponding to the dual
     def get_neighbors(self):
         neighbors_with_multiplicities = self.get_neighbors_with_multiplicities()
         return list(neighbors_with_multiplicities.keys())
