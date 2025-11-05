@@ -1,3 +1,4 @@
+from matplotlib.pylab import rand
 from sage.all import GF, Matrix, VectorSpace, Integers, Graph, randint, set_random_seed
 from sage.graphs.graph_latex import check_tkz_graph
 
@@ -44,12 +45,12 @@ def test_square_rm():
 
 
 def test_random_walk():
-    e = 11
+    e = 43
     p = 2**e * 3 - 1
     r = e - 2
     square = get_arbitrary_square_example(p)
     E1, E2 = square.E1, square.E2
-    P2e_1, Q2e_1 = E1.torsion_basis(2**r)
+    P2e_1, Q2e_1 = E1.torsion_basis(2**e)
     P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
     torsion_generators = [
         ProductPoint(P2e_1, E2(0)),
@@ -58,17 +59,20 @@ def test_random_walk():
         ProductPoint(E1(0), Q2e_2),
     ]
     current_vertex = RMVertex(
-        square, r, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, r)
+        square, e, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, e)
     )
     next_vertex = None
-    random_message = [randint(0, 4) for _ in range(r)]
     graph_dict = {}
     for step in range(r):
         print(f"Step {step}: @ vertex {current_vertex.get_type()}")
         neighbors = current_vertex.get_neighbors()
-        next_vertex = neighbors[random_message[step]]
+        next_vertex = neighbors[randint(0, len(neighbors) - 1)]
         graph_dict[current_vertex] = neighbors
         current_vertex = next_vertex
+    G = Graph(graph_dict)
+    labels = {v: v.get_type() for v in G.vertices()}
+    p = G.plot(vertex_labels=labels)
+    p.save("random_walk_graph.png")
 
 if __name__ == "__main__":
     check_tkz_graph()

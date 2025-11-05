@@ -189,6 +189,16 @@ def get_loop_2_isogeny(kernel):
         "Isomorphism-induced isogenies (LOOPS) are not yet implemented. You can check if a kernel is isomorphism-induced with is_2_kernel_isomorphism_induced(kernel) function."
     )
 
+def is_bad_model(kernel):
+    P1, P2 = kernel[0]
+    Q1, Q2 = kernel[1]
+    Fp2 = P1.curve().base()
+    # The roots of the cubics of E1_iso and E2_iso
+    a1, a2, a3 = P1[0], Q1[0], (P1 + Q1)[0]
+    b1, b2, b3 = P2[0], Q2[0], (P2 + Q2)[0]
+    # Compute coefficients
+    M = Matrix(Fp2, [[a1 * b1, a1, b1], [a2 * b2, a2, b2], [a3 * b3, a3, b3]])
+    return M.determinant() == 0
 
 def is_bad_elliptic_curve_model(E):
     if E.a1() != 0 or E.a3() != 0:
@@ -199,21 +209,9 @@ def is_bad_elliptic_curve_model(E):
 
 
 def fix_curve_model(E):
-    if E.a1() != 0 or E.a3() != 0:
-        E_new = E.short_weierstrass_model(complete_cube=False)
-        iso = E.isomorphism_to(E_new)
-    else:
-        E_new = E
-        iso = lambda x: x
-
-    if E_new.a6() == 0:
-        Psi = WeierstrassIsomorphism(E_new, (1, -1, 0, 0))
-        E_final = Psi.codomain()
-        iso_final = lambda x: Psi(iso(x))
-        return E_final, iso_final
-
-    return E_new, iso
-
+    Psi = WeierstrassIsomorphism(E, (1, -1, 0, 0))
+    E_fixed = Psi.codomain()
+    return E_fixed, Psi
 
 def product_to_jacobian_2_isogeny(kernel):
     if not is_2_kernel_prod(kernel):
@@ -221,14 +219,12 @@ def product_to_jacobian_2_isogeny(kernel):
 
     gen1, gen2 = kernel
     E1, E2 = gen1.curves()
-    if is_bad_elliptic_curve_model(E1):
+    if is_bad_model(kernel):
         E1_iso, iso1 = fix_curve_model(E1)
+        E2_iso, iso2 = fix_curve_model(E2)
     else:
         E1_iso = E1
         iso1 = lambda x: x
-    if is_bad_elliptic_curve_model(E2):
-        E2_iso, iso2 = fix_curve_model(E2)
-    else:
         E2_iso = E2
         iso2 = lambda x: x
 

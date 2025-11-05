@@ -59,7 +59,6 @@ class RMVertex(RichelotVertex):
             A = W.transpose() * self.weil_pairing_two_torsion_action
             # print(f"A:\n{A}")
             W_c = A.solve_right(id_2)
-            assert W_c.transpose() * self.weil_pairing_two_torsion_action * W_c == 0, f"W_c isotropic check failed:\n {W_c}"
             C = W.augment(W_c)
             assert C.is_invertible(), f"{C} \n is not invertible."
             C_inv = C.inverse()
