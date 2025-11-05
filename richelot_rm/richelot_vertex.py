@@ -24,6 +24,9 @@ class RichelotVertex:
         Me = Matrix(GF(2), 4, 4)
         for i, P in enumerate(self.two_torsion_generators):
             for j, Q in enumerate(self.two_torsion_generators):
+                if i == j:
+                    Me[i, j] = 0
+                    continue
                 entry = P.weil_pairing(Q, 2)
                 if entry == 1:
                     Me[i, j] = 0
@@ -46,7 +49,7 @@ class RichelotVertex:
     
     def get_type(self):
         if self.g2_structure.is_product:
-            return R"\Pi" if self.invariants[0] != self.invariants[1] else R"\Sigma"
+            return R"P" if self.invariants[0] != self.invariants[1] else R"S"
         elif self.g2_structure.is_jacobian:
             return R"J"
         return "Error"

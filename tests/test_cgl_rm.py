@@ -1,4 +1,5 @@
-from sage.all import GF, Matrix, VectorSpace, Integers, Graph
+from sage.all import GF, Matrix, VectorSpace, Integers, Graph, randint, set_random_seed
+from sage.graphs.graph_latex import check_tkz_graph
 
 from richelot_rm.product_point import ProductPoint
 from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
@@ -41,5 +42,35 @@ def test_square_rm():
     p = G.plot(vertex_labels=labels)
     p.save("square_vertex_neighbors_RM.png")
 
+
+def test_random_walk():
+    e = 11
+    p = 2**e * 3 - 1
+    r = e - 2
+    square = get_arbitrary_square_example(p)
+    E1, E2 = square.E1, square.E2
+    P2e_1, Q2e_1 = E1.torsion_basis(2**r)
+    P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
+    torsion_generators = [
+        ProductPoint(P2e_1, E2(0)),
+        ProductPoint(E1(0), P2e_2),
+        ProductPoint(Q2e_1, E2(0)),
+        ProductPoint(E1(0), Q2e_2),
+    ]
+    current_vertex = RMVertex(
+        square, r, torsion_generators, golden_ratio_action_on_symplectic_torsion(2, r)
+    )
+    next_vertex = None
+    random_message = [randint(0, 4) for _ in range(r)]
+    graph_dict = {}
+    for step in range(r):
+        print(f"Step {step}: @ vertex {current_vertex.get_type()}")
+        neighbors = current_vertex.get_neighbors()
+        next_vertex = neighbors[random_message[step]]
+        graph_dict[current_vertex] = neighbors
+        current_vertex = next_vertex
+
 if __name__ == "__main__":
-    test_square_rm()
+    check_tkz_graph()
+    # test_square_rm()
+    test_random_walk()

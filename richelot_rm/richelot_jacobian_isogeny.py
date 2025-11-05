@@ -201,9 +201,9 @@ def jacobian_to_jacobian_2_isogeny(kernel):
     G1, _ = gen1
     G2, _ = gen2
     if (G1[2] != 1 and G1[2] != 0):
-        G1 = G1 // G1[2]
+        G1 = G1 / G1[2]
     if (G2[2] != 1 and G2[2] != 0):
-        G2 = G2 // G2[2]
+        G2 = G2 / G2[2]
     
     G3 = h // (G1 * G2)
     M = Matrix(G.padded_list(3) for G in (G1,G2,G3))
@@ -237,9 +237,9 @@ def jacobian_to_jacobian_2_isogeny(kernel):
         g11, g10 = g1red[1], g1red[0]
         g21, g20 = g2red[1], g2red[0]
         # see above
-        Px = (g11*g11*p + g11*g10*s + g10*g10) * H1 * H1 \
-           + (2*g11*g21*p + (g11*g20+g21*g10)*s + 2*g10*g20) * H1 * H2 \
-           + (g21*g21*p + g21*g20*s + g20*g20) * H2 * H2
+        Px = (g11*g11*p + g11*g10*s + g10*g10) * (H1 * H1) \
+           + (2*g11*g21*p + (g11*g20+g21*g10)*s + 2*g10*g20) * (H1 * H2) \
+           + (g21*g21*p + g21*g20*s + g20*g20) * (H2 * H2)
 
         # Compute Y coordinates (non reduced, degree 3)
         assert V[2].is_zero()
@@ -257,7 +257,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
           - (v1*g11*s*p + 2*v1*g10*p + v0*g11*(s*s-2*p) + v0*g10*s)
         Py1 *= H1
         # coefficient of 1 is Gred1(xa) Gred1(xb) h1(x)^2 U(x)
-        Py0 = H1 * U * (g11*g11*p + g11*g10*s + g10*g10)
+        Py0 = H1 * H1 * U * (g11*g11*p + g11*g10*s + g10*g10)
 
         # Now reduce the divisor, and compute Cantor reduction.
         # Py2 * y^2 + Py1 * y + Py0 = 0
@@ -269,6 +269,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
         Dx = ((h_codomain - Py ** 2) // Px)
         Dy = (-Py) % Dx
+        assert (h_codomain - Dy**2) % Dx == 0, f"not div {(h_codomain - Dy**2) % Dx}"
         jac_divisor = codomain.jac([Dx, Dy])
         return JacobianPoint(jac_divisor)
     

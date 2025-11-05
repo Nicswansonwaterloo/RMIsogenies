@@ -21,10 +21,7 @@ class RMVertex(RichelotVertex):
         super().__init__(g2_structure, two_torsion_generators)
 
     def _vector_to_large_torsion_point(self, vec):
-        generators = self.two_r_torsion_generators
-        modulus = 2**self.r
-        vec = [int(v) % modulus for v in vec]
-        components = [vec[i] * generators[i] for i in range(4)]
+        components = [int(vec[i]) * self.two_r_torsion_generators[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
 
     def _get_all_two_kernels(self):
@@ -55,9 +52,12 @@ class RMVertex(RichelotVertex):
     def get_neighbors(self):
         neighbors_with_edges = self._compute_all_neighbors()
         neighbors = []
+        print("Weil pairing action:\n", self.weil_pairing_two_torsion_action)
         for neighbor, phi, W in neighbors_with_edges:            
             id_2 = identity_matrix(GF(2), 2)
+            # print(f"Neighbor \n{neighbor}\n W:\n{W}")
             A = W.transpose() * self.weil_pairing_two_torsion_action
+            # print(f"A:\n{A}")
             W_c = A.solve_right(id_2)
             assert W_c.transpose() * self.weil_pairing_two_torsion_action * W_c == 0, f"W_c isotropic check failed:\n {W_c}"
             C = W.augment(W_c)
