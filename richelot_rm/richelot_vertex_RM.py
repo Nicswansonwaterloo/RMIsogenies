@@ -77,9 +77,7 @@ class RMVertex(RichelotVertex):
         neighbors = {}
         for neighbor, phi, W in neighbors_with_edges:
             id_2 = identity_matrix(GF(2), 2)
-            # print(f"Neighbor \n{neighbor}\n W:\n{W}")
             A = W.transpose() * self.weil_pairing_two_torsion_action
-            # print(f"A:\n{A}")
             W_c = A.solve_right(id_2)
             C = W.augment(W_c)
             assert C.is_invertible(), f"{C} \n is not invertible."

@@ -1,4 +1,3 @@
-
 from sage.all import (
     VectorSpace,
     Matrix,
@@ -8,12 +7,53 @@ from sage.all import (
     PolynomialRing,
     randint,
 )
-import scipy as sp
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 from richelot_rm.richelot_jacobian_isogeny import *
+from richelot_rm.product_point import ProductPoint
+from richelot_rm.richelot_product_isogenies import (
+    compute_2_isogeny_from_product,
+    get_arbitrary_product_example,
+    get_symplectic_two_torsion_prod,
+    is_2_kernel_diagonal,
+    is_2_kernel_prod_loop,
+)
 
 
-def get_all_2_kernels(
+def get_all_2_kernels_prod(
+    prod_structure: GenusTwoProductStructure, randomize_generators=False
+):
+    symplectic_basis = get_symplectic_two_torsion_prod(prod_structure)
+
+    V = VectorSpace(GF(2), 4)
+    B = Matrix(GF(2), [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
+    subspaces = []
+    for W in V.subspaces(2):
+        gens = W.gens()
+        u, v = gens[0], gens[1]
+        if (u * B) * v == 0:
+            subspaces.append(Matrix([u, v]))
+
+    def vec_to_point(vec):
+        components = [ZZ(vec[i]) * symplectic_basis[i] for i in range(4)]
+        return components[0] + components[1] + components[2] + components[3]
+
+    maximal_isotropic_subgroups = []
+    for u, v in subspaces:
+        gen1 = vec_to_point(u)
+        gen2 = vec_to_point(v)
+        if randomize_generators:
+            if bool(randint(0, 1)):
+                if bool(randint(0, 1)):
+                    gen1 = gen1 + gen2
+                else:
+                    gen2 = gen1 + gen2
+        kernel = [ProductPoint(*gen1), ProductPoint(*gen2)]
+        maximal_isotropic_subgroups.append(kernel)
+
+    return maximal_isotropic_subgroups
+
+
+def get_all_2_kernels_jac(
     g2_structure: GenusTwoJacobianStructure, randomize_generators=False
 ):
     symplectic_basis = get_symplectic_two_torsion_jac(g2_structure)
@@ -57,7 +97,7 @@ def test_split_isogeny_example():
     h = x**6 + (5191 * z2 + 5626) * x**4 + (2839 * z2 + 5640) * x**2 + 4795 * z2 + 1488
     g2_structure = GenusTwoJacobianStructure(h)
 
-    kernels = get_all_2_kernels(g2_structure)
+    kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
 
     assert all(
@@ -92,6 +132,7 @@ def test_split_isogeny_example():
 
     assert len(Ts_img_set) == 4, f"Image of 2-torsion does not have size 4 {Ts_img_set}"
 
+
 def test_type_6():
     p = 2**11 * 3 - 1
     Fp2 = GF(p**2)
@@ -102,7 +143,7 @@ def test_type_6():
     assert (p**2 - 1) % 4 == 0
     # since 4 | p^2 - 1, this polynomial splits completely and is square free
     g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
+    kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
     assert all(is_2_kernel_jac(kernel) for kernel in kernels)
 
@@ -138,7 +179,7 @@ def test_type_5():
     assert (p**2 - 1) % 6 == 0
     # since 6 | p^2 - 1, this polynomial splits completely and is square free
     g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
+    kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
     assert all(is_2_kernel_jac(kernel) for kernel in kernels)
 
@@ -177,7 +218,7 @@ def test_type_4():
     tv = (u + 1) * (u - zeta_3**2) / ((u - 1) * (u + zeta_3**2))
     h = (x**2 - 1) * (x**2 - sv**2) * (x**2 - tv**2)
     g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
+    kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
     assert all(is_2_kernel_jac(kernel) for kernel in kernels)
 
@@ -198,7 +239,11 @@ def test_type_4():
 
     # From Florian and Smith
     assert len(split_kernels) == 3
-    assert len(product_codomains) == 1 or len(product_codomains) == 2 or len(product_codomains) == 3
+    assert (
+        len(product_codomains) == 1
+        or len(product_codomains) == 2
+        or len(product_codomains) == 3
+    )
     assert len(jacobian_codomains) == 6
 
 
@@ -211,7 +256,7 @@ def test_type_3():
     u = Fp2.random_element()
     h = (x**2 - 1) * (x**2 - u**2) * (x**2 - (1 / u**2))
     g2_structure = GenusTwoJacobianStructure(h)
-    kernels = get_all_2_kernels(g2_structure)
+    kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
     assert all(is_2_kernel_jac(kernel) for kernel in kernels)
 
@@ -236,9 +281,130 @@ def test_type_3():
     assert len(jacobian_codomains) == 5 or len(jacobian_codomains) == 6
     assert g2_structure.get_isomorphism_class_invariants() in jacobian_codomains
 
+
+def test_pushing_points_through_chains():
+    p = 2**11 * 3 - 1
+    Fp2 = GF(p**2)
+    z2 = Fp2.gen()
+    Rx = PolynomialRing(Fp2, "x")
+    x = Rx.gen()
+    g2_structure = get_arbitrary_product_example(p)
+    structure_chain = [g2_structure]
+    isogeny_chain = []
+
+    # split -> prod_to_prod -> glue -> jac_to_jac -> split -> glue -> jac_to_jac
+    direction = [
+        "glue",
+        "split",
+        "prod_to_prod",
+        "glue",
+        "jac_to_jac",
+        "jac_to_jac",
+        "split",
+        "glue",
+        "jac_to_jac",
+        "split"
+    ]
+    for step in direction:
+        current_structure = structure_chain[-1]
+        if current_structure.is_product:
+            kernels = get_all_2_kernels_prod(current_structure)
+        else:
+            kernels = get_all_2_kernels_jac(current_structure)
+        assert len(kernels) == 15
+
+        if current_structure.is_jacobian:
+            split_kernels = [
+                kernel for kernel in kernels if is_2_kernel_jac_split(kernel)
+            ]
+            non_split_kernels = [
+                kernel for kernel in kernels if not is_2_kernel_jac_split(kernel)
+            ]
+            if step == "split":
+                if len(split_kernels) <= 0:
+                    raise NotImplementedError("No non-split kernels available.")
+                kernel = split_kernels[randint(0, len(split_kernels) - 1)]
+                codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
+                assert codomain.is_jacobian == False
+            elif step == "jac_to_jac":
+                if len(non_split_kernels) <= 0:
+                    raise NotImplementedError("No non-split kernels available.")
+                kernel = non_split_kernels[randint(0, len(non_split_kernels) - 1)]
+                codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
+                assert codomain.is_jacobian == True
+            else:
+                raise ValueError(f"Unknown step type {step}.")
+        else:
+            prod_to_prod_kernels = [
+                kernel
+                for kernel in kernels
+                if is_2_kernel_diagonal(kernel) or is_2_kernel_prod_loop(kernel)
+            ]
+            glued_kernels = [
+                kernel
+                for kernel in kernels
+                if not (is_2_kernel_diagonal(kernel) or is_2_kernel_prod_loop(kernel))
+            ]
+            if step == "prod_to_prod":
+                if len(prod_to_prod_kernels) <= 0:
+                    raise NotImplementedError("No non-split kernels available.")
+                kernel = prod_to_prod_kernels[randint(0, len(prod_to_prod_kernels) - 1)]
+                codomain, isogeny = compute_2_isogeny_from_product(kernel)
+                assert codomain.is_jacobian == False
+            elif step == "glue":
+                if len(glued_kernels) <= 0:
+                    raise NotImplementedError("No non-split kernels available.")
+                kernel = glued_kernels[randint(0, len(glued_kernels) - 1)]
+                codomain, isogeny = compute_2_isogeny_from_product(kernel)
+                assert codomain.is_jacobian == True
+            else:
+                raise ValueError(f"Unknown step type {step}.")
+
+        structure_chain.append(codomain)
+        isogeny_chain.append(isogeny)
+
+    # Now push a random point through the chain
+    e = len(isogeny_chain)
+    E1, E2 = structure_chain[0]
+    P1, Q1 = E1.torsion_basis(2**e)
+    P2, Q2 = E2.torsion_basis(2**e)
+    R1, R2 = E1.random_point(), E2.random_point()
+    random_point = ProductPoint(R1, R2)
+    original_random_order = random_point.order()
+    if original_random_order % (2**6) != 0: 
+        raise NotImplementedError("Random point order divisible by 64, retry.")
+    
+    two_e_torsion_gens = [
+        ProductPoint(P1, E2(0)),
+        ProductPoint(E1(0), P2),
+        ProductPoint(Q1, E2(0)),
+        ProductPoint(E1(0), Q2),
+    ]
+
+    for i in range(len(structure_chain) - 1):
+        isogeny = isogeny_chain[i]
+        random_point = isogeny(random_point)
+        two_e_torsion_gens = [isogeny(T) for T in two_e_torsion_gens]
+    
+    # On average a few factors of 2 lost in order
+    # so we check that the final order is at least original_random_order / 16
+    assert random_point.order() <= original_random_order // 16
+    assert all([T.order() for T in two_e_torsion_gens]) <= 2**(e - 6)
+
+
+def test_push_through_fixed_sequence(attempt_number=0):
+    if attempt_number + 1 % 10 == 0:
+        print(f"Attempt number {attempt_number}")
+    try:
+        test_pushing_points_through_chains()
+    except NotImplementedError as e:
+        test_push_through_fixed_sequence(attempt_number + 1)
+
+
 if __name__ == "__main__":
     test_split_isogeny_example()
     test_type_6()
     test_type_5()
     test_type_4()
     test_type_3()
+    test_push_through_fixed_sequence()

@@ -1,4 +1,5 @@
 from sage.all import ZZ, lcm
+from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint
 from richelot_rm.genus_two_structures import GenusTwoProductStructure
 
 """
@@ -12,6 +13,8 @@ class ProductPoint:
     """
 
     def __init__(self, P1, P2):
+        if not isinstance(P1, EllipticCurvePoint) or not isinstance(P2, EllipticCurvePoint):
+            raise ValueError(f"Points must be points on an elliptic curve: {P1}, {P2}")
         self.P1 = P1
         self.P2 = P2
 
@@ -95,7 +98,7 @@ class ProductPoint:
             e_n(P, Q) = e_n(P1, Q1) * e_n(P2, Q2)
         """
         if not isinstance(other, ProductPoint):
-            raise TypeError("Both inputs must be couple points")
+            raise TypeError("Both inputs must be product points")
 
         P1, P2 = self.points()
         Q1, Q2 = other.points()

@@ -79,7 +79,7 @@ def get_1728_product_example(p):
 
 def is_2_kernel_prod(kernel):
     if not isinstance(kernel, (list, tuple)) or len(kernel) != 2:
-        raise ValueError("Kernel must be a pair of CouplePoint instances.")
+        raise ValueError(f"Kernel must be a pair of ProductPoint instances: {kernel}")
 
     gen1, gen2 = kernel
     is_isotropic = gen1.weil_pairing(gen2, 2) == 1

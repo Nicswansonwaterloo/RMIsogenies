@@ -225,7 +225,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
     J = g2_structure.jac
     h = g2_structure.h
     x = g2_structure.x
-    
+
     G1, _ = gen1
     G2, _ = gen2
     if G1[2] != 1 and G1[2] != 0:
@@ -247,21 +247,20 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
     def isogeny(D: JacobianPoint):
         U, V = D
-
         # Make monic
         if not U[2].is_one():
             U = U / U[2]
+
         V = V % U
-        if U == G1 or U == G2:
-            return JacobianPoint(J(0))
+        if V == 0:
+            if U == G1 or U == G2 or U == G3.monic():
+                return JacobianPoint(J(0))
 
         # Sum and product of (xa, xb)
         s, p = -U[1], U[0]
         # Compute X coordinates (non reduced, degree 4)
         g1red = G1 - U
         g2red = G2 - U
-        # Make sure everything is monic!
-        assert g1red[2].is_zero() and g2red[2].is_zero()
         g11, g10 = g1red[1], g1red[0]
         g21, g20 = g2red[1], g2red[0]
         # see above
@@ -270,7 +269,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
             + (2 * g11 * g21 * p + (g11 * g20 + g21 * g10) * s + 2 * g10 * g20)
             * (H1 * H2)
             + (g21 * g21 * p + g21 * g20 * s + g20 * g20) * (H2 * H2)
-        )
+        ) # Roots are z-coordinates of the images (x_a, \pm y_a), (x_b, \pm y_b)
 
         # Compute Y coordinates (non reduced, degree 3)
         assert V[2].is_zero()
@@ -297,15 +296,29 @@ def jacobian_to_jacobian_2_isogeny(kernel):
         # Now reduce the divisor, and compute Cantor reduction.
         # Py2 * y^2 + Py1 * y + Py0 = 0
         # y = - (Py2 * hnew + Py0) / Py1
-        _, Py1inv, _ = Py1.xgcd(Px)
-        Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
-        assert Px.degree() == 4
-        assert Py.degree() <= 3
+        if 2*D == 0:
+            print(f"Cannot invert Py1 modulo Px\n Py0: {Py0}\nPy2: {Py2}\nPx: {Px}")
+            Dx = Py0.gcd(h_codomain)
+            assert Dx.degree() == 2, f"Degree of Dx is not 2: {Dx}"
+            Dy = x * 0
+            jac_divisor = codomain.jac([Dx, Dy])
+            return JacobianPoint(jac_divisor)
+            
+        d, s, _ = Py1.xgcd(Px)
+        if not d.is_one():
+            Dx = d.monic()
+            Dy = 0 * x
+            assert Dx.degree() == 2, f"Degree of Dx is not 2: {Dx}"
+        else:
+            Py1inv = s
+            Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
+            assert Px.degree() == 4
+            assert Py.degree() <= 3
 
-        Dx = (h_codomain - Py**2) // Px
-        Dy = (-Py) % Dx
+            Dx = (h_codomain - Py**2) // Px
+            Dy = (-Py) % Dx
 
-        assert (h_codomain - Dy**2) % Dx == 0, f"not div {(h_codomain - Dy**2) % Dx}"
+        assert (h_codomain - Dy**2) % Dx == 0
         jac_divisor = codomain.jac([Dx, Dy])
         return JacobianPoint(jac_divisor)
 

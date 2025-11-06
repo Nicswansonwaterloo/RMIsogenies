@@ -138,7 +138,7 @@ class RichelotVertex:
         return kernels
 
     def _compute_isogeny(self, kernel):
-        if self.g2_structure.is_jacobian():
+        if self.g2_structure.is_jacobian:
             codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
         else:
             codomain, isogeny = compute_2_isogeny_from_product(kernel)

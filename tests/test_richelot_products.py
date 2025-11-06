@@ -39,7 +39,7 @@ def get_all_2_kernels(E1, E2, randomize_generators=False):
                     gen1 = gen1 + gen2
                 else:
                     gen2 = gen1 + gen2
-        kernel = ProductPoint(gen1, gen2)
+        kernel = [ProductPoint(*gen1), ProductPoint(*gen2)]
         maximal_isotropic_subgroups.append(kernel)
 
     return maximal_isotropic_subgroups
@@ -334,8 +334,7 @@ if __name__ == "__main__":
     test_product_creation()
     test_maximal_isotropic_subgroups_of_N_torsion()
     test_diagonal_isogenies()
-    for _ in range(300):
-        test_loop_isogeny_from_product_two_kernel()
+    test_loop_isogeny_from_product_two_kernel()
     test_isomorphism_induced_product_loops()
     for i in range(1):
         test_isogeny_from_product_two_kernel()

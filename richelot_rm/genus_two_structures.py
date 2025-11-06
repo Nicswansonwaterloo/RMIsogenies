@@ -8,12 +8,7 @@ class GenusTwoStructure:
 
     def __init__(self, is_product):
         self.is_product = is_product
-
-    def is_product(self):
-        return self.is_product
-
-    def is_jacobian(self):
-        return not self.is_product
+        self.is_jacobian = not is_product
     
 
 class GenusTwoProductStructure(GenusTwoStructure):
