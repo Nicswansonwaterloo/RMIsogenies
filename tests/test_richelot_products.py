@@ -1,7 +1,6 @@
 from richelot_rm.richelot_product_isogenies import *
 from sage.all import GF, Matrix, VectorSpace, ZZ, randint
 
-
 def generate_point_order_N(E, N):
     p = E.base().characteristic()
     n = (p + 1) // N
@@ -12,6 +11,7 @@ def generate_point_order_N(E, N):
             return Q
 
     raise ValueError(f"Never found a point P of order N.")
+
 
 def get_all_2_kernels(E1, E2, randomize_generators=False):
     symplectic_basis = get_symplectic_two_torsion_prod(GenusTwoProductStructure(E1, E2))
@@ -43,6 +43,17 @@ def get_all_2_kernels(E1, E2, randomize_generators=False):
         maximal_isotropic_subgroups.append(kernel)
 
     return maximal_isotropic_subgroups
+
+
+def get_four_torsion_generators(E1, E2):
+    P1, Q1 = E1.torsion_basis(4)
+    P2, Q2 = E2.torsion_basis(4)
+    return [
+        ProductPoint(P1, E2(0)),
+        ProductPoint(E1(0), P2),
+        ProductPoint(Q1, E2(0)),
+        ProductPoint(E1(0), Q2),
+    ]
 
 
 def test_product_creation():
@@ -101,6 +112,7 @@ def test_diagonal_isogenies():
         if is_2_kernel_diagonal((gen1, gen2)):
             number_of_diagonal_kernels += 1
             codomain, isogeny = get_diagonal_2_isogeny((gen1, gen2))
+            E1prime, E2prime = codomain
             E1prime, E2prime = codomain
             assert isogeny(gen1) == ProductPoint(E1prime(0), E2prime(0))
             assert isogeny(gen2) == ProductPoint(E1prime(0), E2prime(0))
@@ -166,7 +178,10 @@ def _test_isogenies_on_two_torsion_and_random(product, maximal_isotropic_subgrou
                     sum_pt = pt + other_pt
                     Ts_img_set.add(sum_pt)
 
-            assert len(Ts_img_set) == 4, f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            assert (
+                len(Ts_img_set) == 4
+            ), f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+
 
 def test_loop_isogeny_from_product_two_kernel():
     p = 2**11 * 3 - 1
@@ -184,7 +199,7 @@ def test_loop_isogeny_from_product_two_kernel():
     E1, E2 = prod
     maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
     _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
-    
+
     prod = get_0_product_example(p)
     E1, E2 = prod
     maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
@@ -194,6 +209,7 @@ def test_loop_isogeny_from_product_two_kernel():
     E1, E2 = prod
     maximal_isotropic_subgroups = get_all_2_kernels(E1, E2, randomize_generators=True)
     _test_isogenies_on_two_torsion_and_random(prod, maximal_isotropic_subgroups)
+
 
 def test_isogeny_from_product_two_kernel():
     def count_loops_products_squares_jacobians(E1, E2):
@@ -251,26 +267,29 @@ def test_isogeny_from_product_two_kernel():
     assert 6 == jacobians
     assert 0 == squares
 
+
 def push_2e_torsion_through_M_2_isogenies(p, e, M):
     product = get_arbitrary_product_example(p)
     chain_of_products = [product]
     chain_of_isogenies = []
     for _ in range(M):
-        maximal_isotropic_subgroups = get_all_2_kernels(product[0], product[1], randomize_generators=True)
+        maximal_isotropic_subgroups = get_all_2_kernels(
+            product[0], product[1], randomize_generators=True
+        )
         product_neighbors = []
         for gen1, gen2 in maximal_isotropic_subgroups:
             try:
                 codomain, isogeny = compute_2_isogeny_from_product((gen1, gen2))
-            except NotImplementedError: #loop
+            except NotImplementedError:  # loop
                 continue
 
             if codomain.is_product:
                 product_neighbors.append((codomain, isogeny))
-        
+
         if len(product_neighbors) == 0:
             break
 
-        random_neighbor = product_neighbors[randint(0, len(product_neighbors)-1)]
+        random_neighbor = product_neighbors[randint(0, len(product_neighbors) - 1)]
         chain_of_products.append(random_neighbor[0])
         chain_of_isogenies.append(random_neighbor[1])
         product = random_neighbor[0]
@@ -284,6 +303,7 @@ def push_2e_torsion_through_M_2_isogenies(p, e, M):
         T = isogeny(T)
     return T
 
+
 def test_product_chain():
     e = 11
     p = 2**e * 3 - 1
@@ -296,6 +316,7 @@ def test_product_chain():
         images_of_T_torsions_order.append(T.order())
 
     assert sum(images_of_T_torsions_order) / num_trails < 1 + 1e-5
+
 
 def test_prod_to_jacobian():
     p = 2**11 * 3 - 1
@@ -325,10 +346,10 @@ def test_prod_to_jacobian():
                     sum_pt = pt + other_pt
                     Ts_img_set.add(sum_pt)
 
-            assert len(Ts_img_set) == 4, f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            assert (
+                len(Ts_img_set) == 4
+            ), f"Image of 2-torsion does not have size 4 {Ts_img_set}"
 
-
-    
 
 if __name__ == "__main__":
     test_product_creation()
@@ -338,7 +359,5 @@ if __name__ == "__main__":
     test_isomorphism_induced_product_loops()
     for i in range(1):
         test_isogeny_from_product_two_kernel()
-    # test_product_chain()
+    test_product_chain()
     test_prod_to_jacobian()
-
-

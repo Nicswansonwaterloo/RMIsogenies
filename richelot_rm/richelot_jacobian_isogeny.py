@@ -247,6 +247,15 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
     def isogeny(D: JacobianPoint):
         U, V = D
+
+        if U.degree() == 0:
+            return JacobianPoint(J(0))
+
+        if U.degree() == 1:
+            raise NotImplementedError(
+                "Cannot yet compute image of degree 1 divisor under jacobian 2-isogeny"
+            )
+        
         # Make monic
         if not U[2].is_one():
             U = U / U[2]
@@ -270,6 +279,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
             * (H1 * H2)
             + (g21 * g21 * p + g21 * g20 * s + g20 * g20) * (H2 * H2)
         ) # Roots are z-coordinates of the images (x_a, \pm y_a), (x_b, \pm y_b)
+        assert Px.degree() == 4, f"Px degree not 4: {Px}\n U: {U}\n v: {V}"
 
         # Compute Y coordinates (non reduced, degree 3)
         assert V[2].is_zero()
@@ -296,29 +306,32 @@ def jacobian_to_jacobian_2_isogeny(kernel):
         # Now reduce the divisor, and compute Cantor reduction.
         # Py2 * y^2 + Py1 * y + Py0 = 0
         # y = - (Py2 * hnew + Py0) / Py1
-        if 2*D == 0:
-            print(f"Cannot invert Py1 modulo Px\n Py0: {Py0}\nPy2: {Py2}\nPx: {Px}")
-            Dx = Py0.gcd(h_codomain)
-            assert Dx.degree() == 2, f"Degree of Dx is not 2: {Dx}"
-            Dy = x * 0
-            jac_divisor = codomain.jac([Dx, Dy])
-            return JacobianPoint(jac_divisor)
-            
+        if Py1.is_zero() and not Py2.is_zero():
+            # Then Py2* w^2 + Py0 = 0 => w^2 = - Py0 / Py2
+            # So the image is the sum of two points with the same x-coordinate, but opposite y-coordinates. This code should never be readed.
+            return JacobianPoint(J(0))
+        if Py1.is_zero() and Py2.is_zero():
+            # In this case yayb = 0 and wa = wb = 0
+            raise NotImplementedError("Cannot have both Py1 and Py2 be zero:\n Px: {Px}\n Py0: {Py0}\n Py1: {Py1}\n Py2: {Py2}")
+        
         d, s, _ = Py1.xgcd(Px)
-        if not d.is_one():
-            Dx = d.monic()
-            Dy = 0 * x
-            assert Dx.degree() == 2, f"Degree of Dx is not 2: {Dx}"
-        else:
+        if d == 1:
             Py1inv = s
             Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
-            assert Px.degree() == 4
+            assert Px.degree() == 4, f"Px degree not 4: {Px}\n s: {s}\n d: {d}\n Py1: {Py1}\n Px: {Px}"
             assert Py.degree() <= 3
 
             Dx = (h_codomain - Py**2) // Px
             Dy = (-Py) % Dx
+        else:
+            # In this case Py0 + Py2 * h_codomain must be divisable by d
+            # So for root za, we would have Py0(za) = 0
+            raise NotImplementedError(
+                "Py1 and Px not coprime, cannot compute isogeny image yet."
+            )
 
-        assert (h_codomain - Dy**2) % Dx == 0
+
+        assert (h_codomain - Dy**2) % Dx == 0, f"Divisor not on curve: h: {h_codomain}, Dx: {Dx}, Dy: {Dy}"
         jac_divisor = codomain.jac([Dx, Dy])
         return JacobianPoint(jac_divisor)
 

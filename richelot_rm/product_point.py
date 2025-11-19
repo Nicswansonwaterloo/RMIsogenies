@@ -33,12 +33,6 @@ class ProductPoint:
     def order(self):
         return lcm(self.P1.order(), self.P2.order())
 
-    def double(self):
-        """
-        Computes [2] P = ([2] P1, [2] P2)
-        """
-        return ZZ(2) * self
-
     def __getitem__(self, i):
         # Operator to get self[i].
         if i == 0:

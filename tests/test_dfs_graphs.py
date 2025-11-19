@@ -3,6 +3,7 @@ from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
 from richelot_rm.richelot_vertex_RM import RMVertex
 from tests.test_cgl_rm import golden_ratio_action_on_symplectic_torsion
 from collections import deque
+from sage.all import Graph
 
 def test_dfs_graph_traversal():
     e = 7
@@ -41,9 +42,12 @@ def test_dfs_graph_traversal():
                     queue.append(neighbor)
                     graph_dict[neighbor] = []
         current_level += 1
-    
 
-
+    # G = Graph(graph_dict)
+    # vertex_labels = {v: v.get_type() for v in G.vertices()}
+    # p = G.plot(vertex_labels=vertex_labels, layout='spring')
+    # p.save("test_output/richelot_graph/rm_richelot_dfs_traversal.png")
     
 if __name__ == "__main__":
-    test_dfs_graph_traversal()
+    for _ in range(10):
+        test_dfs_graph_traversal()

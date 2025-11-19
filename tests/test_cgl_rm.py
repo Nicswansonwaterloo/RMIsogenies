@@ -62,9 +62,9 @@ def test_random_walk():
         initial_vertex, e - 2, verbose=True, allow_backtrack=True
     )
     labels = {v: v.get_type() for v in G.vertices()}
-    non_walk = [v for v in G.vertices() if v not in walk]
+    non_walk = [v for v in G.vertices() if v not in walk and v != initial_vertex]
     p = G.plot(
-        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk}
+        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk, "#99ffa8": [initial_vertex]}
     )
     p.save(f"test_output/rm_graph/random_walk_e={e}.png")
 
@@ -73,8 +73,8 @@ def test_non_backtracking_random_walk():
     # e = 827
     # e = 470
     # e = 216
-    e = 43
-    # e = 11
+    # e = 43
+    e = 11
     initial_vertex = get_cql_parameters(e)
     walk, G = take_random_walk(
         initial_vertex, e - 2, verbose=True, allow_backtrack=False
@@ -89,6 +89,6 @@ def test_non_backtracking_random_walk():
 
 
 if __name__ == "__main__":
-    # check_tkz_graph()
-    # test_square_rm()
+    check_tkz_graph()
+    test_random_walk()
     test_non_backtracking_random_walk()

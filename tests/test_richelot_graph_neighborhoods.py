@@ -1,6 +1,7 @@
-from sage.all import GF, Graph, PolynomialRing, is_prime
+from sage.all import GF, Graph, PolynomialRing, is_prime, Integers, Matrix
 
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
+from richelot_rm.product_point import ProductPoint
 from richelot_rm.richelot_product_isogenies import (
     get_arbitrary_product_example,
     get_arbitrary_square_example,
@@ -8,9 +9,10 @@ from richelot_rm.richelot_product_isogenies import (
     get_square_1728_example,
     get_0_product_example,
     get_1728_product_example,
-    get_0_and_1728_example
+    get_0_and_1728_example,
 )
 from richelot_rm.richelot_vertex import RichelotVertex
+from richelot_rm.richelot_vertex_RM import RMVertex
 
 
 def get_type_1_vertex(p):
@@ -191,6 +193,36 @@ def test_type_6_vertex_neighbors():
     p.save("test_output/richelot_graph/type_6_vertex_neighbors.png")
 
 
+def test_special_automorphic_primes():
+    e = 10
+    p = 2**e * 3 * 5 - 1
+    product_0_and_1728 = get_0_and_1728_example(p)
+    initial_vertex = RichelotVertex(product_0_and_1728)
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/richelot_graph/product_0_and_1728_vertex_neighbors.png")
+
+    E1, E2 = product_0_and_1728
+    P2e_1, Q2e_1 = E1.torsion_basis(2**e)
+    P2e_2, Q2e_2 = E2.torsion_basis(2**e)
+    torsion_generators = [
+        ProductPoint(P2e_1, E2(0)),
+        ProductPoint(E1(0), P2e_2),
+        ProductPoint(Q2e_1, E2(0)),
+        ProductPoint(E1(0), Q2e_2),
+    ]
+    Zle = Integers(2**e)
+    golden_ratio_action_on_symplectic_torsion = Matrix(
+        Zle, [[0, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1]]
+    )
+    initial_vertex = RMVertex(
+        product_0_and_1728,
+        e,
+        torsion_generators,
+        golden_ratio_action_on_symplectic_torsion,
+    )
+    P = get_sage_graph_neighborhood_plot(initial_vertex)
+    P.save("test_output/rm_graph/product_0_and_1728_vertex_neighbors.png")
+
 if __name__ == "__main__":
     # test_square_vertex_neighbors()
     # test_prod_vertex_neighbors()
@@ -200,4 +232,5 @@ if __name__ == "__main__":
     # test_type_4_vertex_neighbors()
     # test_type_5_vertex_neighbors()
     # test_type_6_vertex_neighbors()
-    test_square_0_vertex_neighbors()
+    # test_square_0_vertex_neighbors()
+    test_special_automorphic_primes()
