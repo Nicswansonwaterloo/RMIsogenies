@@ -1,4 +1,13 @@
-from sage.all import GF, Matrix, VectorSpace, Integers, Graph, randint, set_random_seed, is_prime
+from sage.all import (
+    GF,
+    Matrix,
+    VectorSpace,
+    Integers,
+    Graph,
+    randint,
+    set_random_seed,
+    is_prime,
+)
 from sage.graphs.graph_latex import check_tkz_graph
 
 from richelot_rm.product_point import ProductPoint
@@ -15,7 +24,10 @@ def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
 
 
 def get_cql_parameters(e):
+    # Require that e \equiv 2 \pmod 4 for graph to be undirected.
+    assert e % 4 == 2, "e must be congruent to 2 mod 4."
     p = 2**e * 3 - 1
+    assert is_prime(p), "2**e * 3 - 1 must be prime."
     square = get_arbitrary_square_example(p)
     E1, E2 = square.E1, square.E2
     P2e_1, Q2e_1 = E1.torsion_basis(2**e)
@@ -54,27 +66,35 @@ def take_random_walk(vertex, steps, verbose=False, allow_backtrack=False):
     return walk, Graph(graph_dict)
 
 
-def test_random_walk():
-    # e = 43
-    e = 11
-    initial_vertex = get_cql_parameters(11)
+def test_random_walk(e):
+    initial_vertex = get_cql_parameters(e)
     walk, G = take_random_walk(
         initial_vertex, e - 2, verbose=True, allow_backtrack=True
     )
     labels = {v: v.get_type() for v in G.vertices()}
     non_walk = [v for v in G.vertices() if v not in walk and v != initial_vertex]
     p = G.plot(
-        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk, "#99ffa8": [initial_vertex]}
+        vertex_labels=labels,
+        vertex_colors={
+            "#9dc3ff": walk,
+            "#fadb87": non_walk,
+            "#99ffa8": [initial_vertex],
+        },
     )
     p.save(f"test_output/rm_graph/random_walk_e={e}.png")
 
 
-def test_non_backtracking_random_walk():
-    # e = 827
-    # e = 470
-    # e = 216
-    # e = 43
-    e = 11
+def find_suitable_primes(e_start, e_end):
+    suitable_primes = []
+    for e in range(e_start, e_end + 1):
+        p = 2**e * 3 - 1
+        if is_prime(p) and e % 4 == 2:
+            suitable_primes.append(e)
+    return suitable_primes
+
+
+def test_non_backtracking_random_walk(e):
+
     initial_vertex = get_cql_parameters(e)
     walk, G = take_random_walk(
         initial_vertex, e - 2, verbose=True, allow_backtrack=False
@@ -83,12 +103,24 @@ def test_non_backtracking_random_walk():
     labels = {v: v.get_type() for v in G.vertices()}
     non_walk = [v for v in G.vertices() if v not in walk and v != initial_vertex]
     p = G.plot(
-        vertex_labels=labels, vertex_colors={"#9dc3ff": walk, "#fadb87": non_walk, "#99ffa8": [initial_vertex]}
+        vertex_labels=labels,
+        vertex_colors={
+            "#9dc3ff": walk,
+            "#fadb87": non_walk,
+            "#99ffa8": [initial_vertex],
+        },
     )
     p.save(f"test_output/rm_graph/random_non_backtracking_walk_e={e}.png")
 
 
 if __name__ == "__main__":
+    # print(find_suitable_primes(1000, 2000))
+        # e = 1274
+    # e = 458
+    # e = 94
+    # e = 34
+    e = 18
+    # e = 6
     check_tkz_graph()
-    test_random_walk()
-    test_non_backtracking_random_walk()
+    test_random_walk(e)
+    test_non_backtracking_random_walk(e)
