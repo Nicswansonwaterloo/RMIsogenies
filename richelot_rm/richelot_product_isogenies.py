@@ -51,7 +51,6 @@ def _random_supersingular_curve(p):
     E = special_supersingular_curve(F)
     K = E.random_point()
     E_rand = E.isogeny(K, algorithm="factored").codomain()
-
     return E_rand.montgomery_model()
 
 

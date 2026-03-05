@@ -2,6 +2,8 @@ from sage.all import (
     Matrix,
     Integers,
     Graph,
+    discrete_log,
+    inverse_mod,
     randint,
     is_prime,
 )
@@ -20,15 +22,28 @@ def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):
     return Matrix(Zle, [[0, 1, 0, 0], [1, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1]])
 
 
-def get_cql_parameters(e):
+def get_cgl_parameters(e):
     # Require that e \equiv 2 \pmod 4 for graph to be undirected.
     assert e % 4 == 2, "e must be congruent to 2 mod 4."
     p = 2**e * 3 - 1
     assert is_prime(p), "2**e * 3 - 1 must be prime."
     square = get_arbitrary_square_example(p)
+    print(f"Got square example for p={p}.")
     E1, E2 = square.E1, square.E2
-    P2e_1, Q2e_1 = E1.torsion_basis(2**e)
+
+    # Unfortunately, the native E1.torsion_basis(2**e) is incredibly slow for larger e.
+    print(f"Getting torsion basis for e={e}...")
+    if e < 100:
+        P2e_1, Q2e_1 = E1.torsion_basis(2**e)
+    else:
+        P2e_1, Q2e_1 = E1.torsion_basis(2**e)
     P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
+
+    e1 = P2e_1.weil_pairing(Q2e_1, 2**e)
+    e2 = P2e_2.weil_pairing(Q2e_2, 2**e)
+    k = discrete_log(e2, e1, ord=2**e, algorithm="lambda")
+    Q2e_2 = inverse_mod(k, 2**e) * Q2e_2
+
     torsion_generators = [
         ProductPoint(P2e_1, E2(0)),
         ProductPoint(E1(0), P2e_2),
@@ -64,7 +79,7 @@ def take_random_walk(vertex, steps, verbose=False, allow_backtrack=False):
 
 
 def test_random_walk(e):
-    initial_vertex = get_cql_parameters(e)
+    initial_vertex = get_cgl_parameters(e)
     walk, G = take_random_walk(
         initial_vertex, e - 2, verbose=True, allow_backtrack=True
     )
@@ -92,7 +107,7 @@ def find_suitable_primes(e_start, e_end):
 
 def test_non_backtracking_random_walk(e):
 
-    initial_vertex = get_cql_parameters(e)
+    initial_vertex = get_cgl_parameters(e)
     walk, G = take_random_walk(
         initial_vertex, e - 2, verbose=True, allow_backtrack=False
     )
@@ -115,8 +130,8 @@ if __name__ == "__main__":
     # e = 1274
     # e = 458
     # e = 94
-    # e = 34
-    e = 18
+    e = 34
+    # e = 18
     # e = 6
     check_tkz_graph()
     test_random_walk(e)
