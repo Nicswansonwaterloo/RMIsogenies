@@ -1,4 +1,4 @@
-from sage.all import GF, Graph, PolynomialRing, is_prime, Integers, Matrix
+from sage.all import GF, Graph, PolynomialRing, Integers, Matrix
 
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 from richelot_rm.product_point import ProductPoint
@@ -222,6 +222,7 @@ def test_special_automorphic_primes():
     )
     P = get_sage_graph_neighborhood_plot(initial_vertex)
     P.save("test_output/rm_graph/product_0_and_1728_vertex_neighbors.png")
+
 
 if __name__ == "__main__":
     # test_square_vertex_neighbors()

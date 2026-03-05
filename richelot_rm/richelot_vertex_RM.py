@@ -43,7 +43,9 @@ class RMVertex(RichelotVertex):
                 subspaces.append(subspace)
 
         W_dual = Matrix(GF(2), [[0, 0], [0, 0], [1, 0], [0, 1]])
-        assert W_dual in subspaces, "Dual kernel does not seem to perserve RM." # Should probably be an equality check, possibly does not happen on initial vertex depending...
+        assert W_dual in subspaces, (
+            "Dual kernel does not seem to perserve RM."
+        )  # Should probably be an equality check, possibly does not happen on initial vertex depending...
         # The way that the torsion is passed in get_neighbors, we can do something clever to make sure that the dual is always first.
         # In particular, the dual kernel is always the one spanned by the last two kernel vectors:
         # [ 0 0 ]
@@ -98,12 +100,12 @@ class RMVertex(RichelotVertex):
             two_torsion_orders = [
                 (2 ** (self.r - 2)) * P for P in codomain_torsion_gens
             ]
-            assert all(
-                P == 0 for P in should_be_zero
-            ), f"Should be zero check failed:\n {should_be_zero}"
-            assert all(
-                P != 0 for P in two_torsion_orders
-            ), f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
+            assert all(P == 0 for P in should_be_zero), (
+                f"Should be zero check failed:\n {should_be_zero}"
+            )
+            assert all(P != 0 for P in two_torsion_orders), (
+                f"New torsion generators do not have correct orders:\n {two_torsion_orders}"
+            )
 
             # Compute the RM action on the new_torsion_gens basis
             Mphi = self.rm_action_on_two_r_torsion.change_ring(GF(2))
@@ -119,9 +121,9 @@ class RMVertex(RichelotVertex):
             )  # Have checked to be correctly representing the action of RM on the changed basis on the domain.
 
             # Compute the RM action on the codomain with respect to codomain_torsion_gens
-            assert (
-                rm_action_on_C_lifted[2:4, 0:2] % 2 == 0
-            ), f"lower-left block not even:\n{rm_action_on_C}"
+            assert rm_action_on_C_lifted[2:4, 0:2] % 2 == 0, (
+                f"lower-left block not even:\n{rm_action_on_C}"
+            )
             rm_action_prime = copy.deepcopy(rm_action_on_C_lifted)
             rm_action_prime[0:2, 2:4] *= 2
             rm_action_prime[2:4, 0:2] /= 2

@@ -1,6 +1,7 @@
 from sage.all import HyperellipticCurve
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 
+
 class GenusTwoStructure:
     """
     A base class for representing an abelian surface.
@@ -9,7 +10,7 @@ class GenusTwoStructure:
     def __init__(self, is_product):
         self.is_product = is_product
         self.is_jacobian = not is_product
-    
+
 
 class GenusTwoProductStructure(GenusTwoStructure):
     """
@@ -28,12 +29,12 @@ class GenusTwoProductStructure(GenusTwoStructure):
         if not isinstance(other, GenusTwoProductStructure):
             return False
         return self.E1 == other.E1 and self.E2 == other.E2
-    
+
     def get_isomorphism_class_invariants(self):
         j1 = self.E1.j_invariant()
         j2 = self.E2.j_invariant()
         return tuple(sorted((j1, j2)))
-    
+
     def is_isomorphic_to(self, other):
         if not isinstance(other, GenusTwoProductStructure):
             return False
@@ -55,13 +56,14 @@ class GenusTwoProductStructure(GenusTwoStructure):
             return self.E2
         else:
             raise IndexError("Index {} is out of range.".format(i))
-        
+
 
 class GenusTwoJacobianStructure(GenusTwoStructure):
     """
     A base class for representing an abelian surface which is a jacobian of a genus two curve.
     The representation uses richelot isogenies, so this requires a hyperelliptic curve.
     """
+
     def __init__(self, h):
         self.Rx = h.parent()
         self.x = self.Rx.gen()
@@ -72,20 +74,23 @@ class GenusTwoJacobianStructure(GenusTwoStructure):
 
     def __repr__(self):
         return f"Jacobian of {self.h}"
-    
+
     def __eq__(self, other):
         if not isinstance(other, GenusTwoJacobianStructure):
             return False
         return self.h.monic() == other.h.monic()
-    
+
     def get_isomorphism_class_invariants(self):
         return absolute_igusa_invariants_kohel(self.h)
-    
+
     def is_isomorphic_to(self, other):
         if not isinstance(other, GenusTwoJacobianStructure):
             return False
-        return self.get_isomorphism_class_invariants() == other.get_isomorphism_class_invariants()
-    
+        return (
+            self.get_isomorphism_class_invariants()
+            == other.get_isomorphism_class_invariants()
+        )
+
     # Points will be divisors on the jacobian. Handled by Sage internally.
     def __call__(self, *args):
         if len(args) != 1:

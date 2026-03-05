@@ -1,4 +1,4 @@
-from sage.all import Matrix, GF, vector, HyperellipticCurve, EllipticCurve
+from sage.all import Matrix, vector, EllipticCurve
 from richelot_rm.genus_two_structures import (
     GenusTwoJacobianStructure,
     GenusTwoProductStructure,
@@ -142,8 +142,8 @@ def jacobian_to_product_2_isogeny(kernel):
                 )  # V1(x_a^2) = w_a, V1(x_b^2) = w_b where w_a^2 = p1(x_a^2)
                 V1 = V1 % U1  # Reduce to Mumford coordinates
                 U1red = (
-                    p1 - V1**2
-                ) // U1  # V1^2 - p1 have the roots x_a^2, x_b^2 BUT ALSO the extra root x_c. which simulateniously lives on E1, but also lies on the line through (x_a, y_a) and (x_b, y_b). Hence x_c is the x-coordinate of P_{x_a^2} + P_{x_b^2} on E1.
+                    (p1 - V1**2) // U1
+                )  # V1^2 - p1 have the roots x_a^2, x_b^2 BUT ALSO the extra root x_c. which simulateniously lives on E1, but also lies on the line through (x_a, y_a) and (x_b, y_b). Hence x_c is the x-coordinate of P_{x_a^2} + P_{x_b^2} on E1.
                 xP1 = (
                     -U1red[0] / U1red[1]
                 )  # Here U1red is linear, and we are solving for the extra root x_c
@@ -201,9 +201,9 @@ def jacobian_to_product_2_isogeny(kernel):
 
                 # V21 * w = V20 modulo U2 (for (z_a, w_a) and (z_b, w_b))
                 _d, V21inv, _ = V21.xgcd(U2)
-                assert (
-                    _d.is_one()
-                ), f"GCD not 1: {_d}\n s: {s}, p: {p}\n V21: {V21}, U2: {U2}"
+                assert _d.is_one(), (
+                    f"GCD not 1: {_d}\n s: {s}, p: {p}\n V21: {V21}, U2: {U2}"
+                )
                 V2 = (V21inv * V20) % U2
                 assert V2**2 % U2 == p2 % U2
 
@@ -255,7 +255,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
             raise NotImplementedError(
                 "Cannot yet compute image of degree 1 divisor under jacobian 2-isogeny"
             )
-        
+
         # Make monic
         if not U[2].is_one():
             U = U / U[2]
@@ -278,7 +278,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
             + (2 * g11 * g21 * p + (g11 * g20 + g21 * g10) * s + 2 * g10 * g20)
             * (H1 * H2)
             + (g21 * g21 * p + g21 * g20 * s + g20 * g20) * (H2 * H2)
-        ) # Roots are z-coordinates of the images (x_a, \pm y_a), (x_b, \pm y_b)
+        )  # Roots are z-coordinates of the images (x_a, \pm y_a), (x_b, \pm y_b)
         assert Px.degree() == 4, f"Px degree not 4: {Px}\n U: {U}\n v: {V}"
 
         # Compute Y coordinates (non reduced, degree 3)
@@ -312,13 +312,17 @@ def jacobian_to_jacobian_2_isogeny(kernel):
             return JacobianPoint(J(0))
         if Py1.is_zero() and Py2.is_zero():
             # In this case yayb = 0 and wa = wb = 0
-            raise NotImplementedError("Cannot have both Py1 and Py2 be zero:\n Px: {Px}\n Py0: {Py0}\n Py1: {Py1}\n Py2: {Py2}")
-        
+            raise NotImplementedError(
+                "Cannot have both Py1 and Py2 be zero:\n Px: {Px}\n Py0: {Py0}\n Py1: {Py1}\n Py2: {Py2}"
+            )
+
         d, s, _ = Py1.xgcd(Px)
         if d == 1:
             Py1inv = s
             Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
-            assert Px.degree() == 4, f"Px degree not 4: {Px}\n s: {s}\n d: {d}\n Py1: {Py1}\n Px: {Px}"
+            assert Px.degree() == 4, (
+                f"Px degree not 4: {Px}\n s: {s}\n d: {d}\n Py1: {Py1}\n Px: {Px}"
+            )
             assert Py.degree() <= 3
 
             Dx = (h_codomain - Py**2) // Px
@@ -330,8 +334,9 @@ def jacobian_to_jacobian_2_isogeny(kernel):
                 "Py1 and Px not coprime, cannot compute isogeny image yet."
             )
 
-
-        assert (h_codomain - Dy**2) % Dx == 0, f"Divisor not on curve: h: {h_codomain}, Dx: {Dx}, Dy: {Dy}"
+        assert (h_codomain - Dy**2) % Dx == 0, (
+            f"Divisor not on curve: h: {h_codomain}, Dx: {Dx}, Dy: {Dy}"
+        )
         jac_divisor = codomain.jac([Dx, Dy])
         return JacobianPoint(jac_divisor)
 

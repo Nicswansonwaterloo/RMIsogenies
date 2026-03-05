@@ -1,14 +1,19 @@
-from sage.schemes.hyperelliptic_curves.jacobian_morphism import JacobianMorphism_divisor_class_field
+from sage.schemes.hyperelliptic_curves.jacobian_morphism import (
+    JacobianMorphism_divisor_class_field,
+)
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 
 """
 A Wrapper for points that live on a genus_two_jacobian_structure
 """
+
+
 class JacobianPoint:
     """
     A helper class which represents an element on the Jacobian of a genus two curve.
     This will mostly be handled internally by sage, but we wrap it here to have a consistent interface with ProductPoint.
     """
+
     def __init__(self, D: JacobianMorphism_divisor_class_field):
         self.D = D
         self.D1 = D[0]
@@ -53,12 +58,16 @@ class JacobianPoint:
 
     def __add__(self, other):
         if not isinstance(other, JacobianPoint):
-            raise TypeError(f"Cannot add Jacobian point to non-Jacobian point. {type(other)}")
+            raise TypeError(
+                f"Cannot add Jacobian point to non-Jacobian point. {type(other)}"
+            )
         return JacobianPoint(self.D + other.D)
 
     def __sub__(self, other):
         if not isinstance(other, JacobianPoint):
-            raise TypeError(f"Cannot subtract Jacobian point from non-Jacobian point. {type(other)}")
+            raise TypeError(
+                f"Cannot subtract Jacobian point from non-Jacobian point. {type(other)}"
+            )
         return JacobianPoint(self.D - other.D)
 
     def __neg__(self):
@@ -69,7 +78,7 @@ class JacobianPoint:
 
     def __rmul__(self, m):
         return JacobianPoint(m * self.D)
-    
+
     def __hash__(self):
         return hash((hash(self.D1), hash(self.D2)))
 
@@ -79,8 +88,10 @@ class JacobianPoint:
         if n != 2:
             raise NotImplementedError("Weil pairing is only implemented for n=2")
         if self.D2 != 0 or other.D2 != 0:
-            raise ValueError("Trying to call Weil pairing n = 2 on non 2-torsion points")
-        
+            raise ValueError(
+                "Trying to call Weil pairing n = 2 on non 2-torsion points"
+            )
+
         D1_prime = other.D1
         if self.D1.gcd(D1_prime) == 1:
             return 1

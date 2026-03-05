@@ -5,6 +5,8 @@ from richelot_rm.genus_two_structures import GenusTwoProductStructure
 """
 Borrowed and modified from https://github.com/ThetaIsogenies/two-isogenies
 """
+
+
 class ProductPoint:
     """
     A helper class which represents an element P = (P1, P2) in E1 x E2
@@ -13,7 +15,9 @@ class ProductPoint:
     """
 
     def __init__(self, P1, P2):
-        if not isinstance(P1, EllipticCurvePoint) or not isinstance(P2, EllipticCurvePoint):
+        if not isinstance(P1, EllipticCurvePoint) or not isinstance(
+            P2, EllipticCurvePoint
+        ):
             raise ValueError(f"Points must be points on an elliptic curve: {P1}, {P2}")
         self.P1 = P1
         self.P2 = P2
@@ -55,7 +59,7 @@ class ProductPoint:
         if other == 0:
             E1, E2 = self.parent()
             return self.P1 == E1(0) and self.P2 == E2(0)
-        
+
         return self.P1 == other.P1 and self.P2 == other.P2
 
     def __add__(self, other):
@@ -80,7 +84,7 @@ class ProductPoint:
 
     def __rmul__(self, m):
         return self * m
-    
+
     def __hash__(self):
         return hash((hash(self.P1), hash(self.P2)))
 
@@ -97,9 +101,8 @@ class ProductPoint:
         P1, P2 = self.points()
         Q1, Q2 = other.points()
 
-
         ePQ1 = P1.weil_pairing(Q1, n)
         ePQ2 = P2.weil_pairing(Q2, n)
-        
+
         Fp2 = P1.base_ring()
         return Fp2(ePQ1 * ePQ2)

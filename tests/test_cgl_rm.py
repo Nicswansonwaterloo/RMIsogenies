@@ -1,11 +1,8 @@
 from sage.all import (
-    GF,
     Matrix,
-    VectorSpace,
     Integers,
     Graph,
     randint,
-    set_random_seed,
     is_prime,
 )
 from sage.graphs.graph_latex import check_tkz_graph
@@ -115,7 +112,7 @@ def test_non_backtracking_random_walk(e):
 
 if __name__ == "__main__":
     # print(find_suitable_primes(1000, 2000))
-        # e = 1274
+    # e = 1274
     # e = 458
     # e = 94
     # e = 34

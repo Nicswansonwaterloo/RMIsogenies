@@ -1,6 +1,7 @@
 from richelot_rm.richelot_product_isogenies import *
 from sage.all import GF, Matrix, VectorSpace, ZZ, randint
 
+
 def generate_point_order_N(E, N):
     p = E.base().characteristic()
     n = (p + 1) // N
@@ -178,9 +179,9 @@ def _test_isogenies_on_two_torsion_and_random(product, maximal_isotropic_subgrou
                     sum_pt = pt + other_pt
                     Ts_img_set.add(sum_pt)
 
-            assert (
-                len(Ts_img_set) == 4
-            ), f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            assert len(Ts_img_set) == 4, (
+                f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            )
 
 
 def test_loop_isogeny_from_product_two_kernel():
@@ -346,9 +347,9 @@ def test_prod_to_jacobian():
                     sum_pt = pt + other_pt
                     Ts_img_set.add(sum_pt)
 
-            assert (
-                len(Ts_img_set) == 4
-            ), f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            assert len(Ts_img_set) == 4, (
+                f"Image of 2-torsion does not have size 4 {Ts_img_set}"
+            )
 
 
 if __name__ == "__main__":

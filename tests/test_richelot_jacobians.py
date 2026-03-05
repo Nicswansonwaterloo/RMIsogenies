@@ -100,16 +100,16 @@ def test_split_isogeny_example():
     kernels = get_all_2_kernels_jac(g2_structure)
     assert len(kernels) == 15
 
-    assert all(
-        is_2_kernel_jac(kernel) for kernel in kernels
-    ), "Not all kernels are valid 2-isogeny kernels."
+    assert all(is_2_kernel_jac(kernel) for kernel in kernels), (
+        "Not all kernels are valid 2-isogeny kernels."
+    )
 
     for kernel in kernels:
         kernel_set = [2 * kernel[0], kernel[0], kernel[1], kernel[0] + kernel[1]]
         kernel_set = set(kernel_set)
-        assert (
-            len(kernel_set) == 4
-        ), f"Kernel does not have size 4: {kernel_set}, kernel: {kernel}"
+        assert len(kernel_set) == 4, (
+            f"Kernel does not have size 4: {kernel_set}, kernel: {kernel}"
+        )
 
     split_kernels = [kernel for kernel in kernels if is_2_kernel_jac_split(kernel)]
     assert len(split_kernels) == 1
@@ -303,7 +303,7 @@ def test_pushing_points_through_chains():
         "split",
         "glue",
         "jac_to_jac",
-        "split"
+        "split",
     ]
     for step in direction:
         current_structure = structure_chain[-1]
@@ -371,9 +371,9 @@ def test_pushing_points_through_chains():
     R1, R2 = E1.random_point(), E2.random_point()
     random_point = ProductPoint(R1, R2)
     original_random_order = random_point.order()
-    if original_random_order % (2**6) != 0: 
+    if original_random_order % (2**6) != 0:
         raise NotImplementedError("Random point order divisible by 64, retry.")
-    
+
     two_e_torsion_gens = [
         ProductPoint(P1, E2(0)),
         ProductPoint(E1(0), P2),
@@ -385,11 +385,11 @@ def test_pushing_points_through_chains():
         isogeny = isogeny_chain[i]
         random_point = isogeny(random_point)
         two_e_torsion_gens = [isogeny(T) for T in two_e_torsion_gens]
-    
+
     # On average a few factors of 2 lost in order
     # so we check that the final order is at least original_random_order / 16
     assert random_point.order() <= original_random_order // 16
-    assert all([T.order() for T in two_e_torsion_gens]) <= 2**(e - 6)
+    assert all([T.order() for T in two_e_torsion_gens]) <= 2 ** (e - 6)
 
 
 def test_push_through_fixed_sequence(attempt_number=0):
