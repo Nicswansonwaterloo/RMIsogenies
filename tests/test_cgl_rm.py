@@ -28,22 +28,10 @@ def get_cgl_parameters(e):
     p = 2**e * 3 - 1
     assert is_prime(p), "2**e * 3 - 1 must be prime."
     square = get_arbitrary_square_example(p)
-    print(f"Got square example for p={p}.")
     E1, E2 = square.E1, square.E2
 
-    # Unfortunately, the native E1.torsion_basis(2**e) is incredibly slow for larger e.
-    print(f"Getting torsion basis for e={e}...")
-    if e < 100:
-        P2e_1, Q2e_1 = E1.torsion_basis(2**e)
-    else:
-        P2e_1, Q2e_1 = E1.torsion_basis(2**e)
+    P2e_1, Q2e_1 = E1.torsion_basis(2**e)
     P2e_2, Q2e_2 = E2(P2e_1), E2(Q2e_1)
-
-    e1 = P2e_1.weil_pairing(Q2e_1, 2**e)
-    e2 = P2e_2.weil_pairing(Q2e_2, 2**e)
-    k = discrete_log(e2, e1, ord=2**e, algorithm="lambda")
-    Q2e_2 = inverse_mod(k, 2**e) * Q2e_2
-
     torsion_generators = [
         ProductPoint(P2e_1, E2(0)),
         ProductPoint(E1(0), P2e_2),
@@ -129,8 +117,8 @@ if __name__ == "__main__":
     # print(find_suitable_primes(1000, 2000))
     # e = 1274
     # e = 458
-    # e = 94
-    e = 34
+    e = 94
+    # e = 34
     # e = 18
     # e = 6
     check_tkz_graph()
