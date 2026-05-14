@@ -355,9 +355,6 @@ def product_to_jacobian_2_isogeny(kernel):
             div_Q = J([uQ, vQ])
         else:
             div_Q = J(0)
-        
-        print()
-        print(div_P, div_Q)
 
         return JacobianPoint(div_P + div_Q)
 
