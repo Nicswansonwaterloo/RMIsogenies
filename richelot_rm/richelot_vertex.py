@@ -1,6 +1,6 @@
 from sage.all import Matrix, GF, VectorSpace
 
-from richelot_rm.genus_two_structures import GenusTwoStructure
+from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
 from richelot_rm.richelot_product_isogenies import (
     compute_2_isogeny_from_product,
     get_symplectic_two_torsion_prod,
@@ -12,7 +12,7 @@ from richelot_rm.richelot_jacobian_isogeny import (
 
 
 class RichelotVertex:
-    def __init__(self, g2_structure: GenusTwoStructure, two_torsion_generators=None):
+    def __init__(self, g2_structure: GenusTwoStructureAbstract, two_torsion_generators=None):
         self.g2_structure = g2_structure
         self.two_torsion_generators = two_torsion_generators
         self.weil_pairing_two_torsion_action = None

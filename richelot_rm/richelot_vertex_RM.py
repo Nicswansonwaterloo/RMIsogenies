@@ -1,13 +1,13 @@
 from sage.all import GF, identity_matrix, Integers, Matrix
 import copy
 from richelot_rm.richelot_vertex import RichelotVertex
-from richelot_rm.genus_two_structures import GenusTwoStructure
+from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
 
 
 class RMVertex(RichelotVertex):
     def __init__(
         self,
-        g2_structure: GenusTwoStructure,
+        g2_structure: GenusTwoStructureAbstract,
         r,
         two_r_torsion_generators,
         rm_action_on_two_r_torsion,

@@ -1,6 +1,3 @@
-from sage.schemes.hyperelliptic_curves.jacobian_morphism import (
-    JacobianMorphism_divisor_class_field,
-)
 from richelot_rm.genus_two_structures import GenusTwoJacobianStructure
 
 """
@@ -14,7 +11,7 @@ class JacobianPoint:
     This will mostly be handled internally by sage, but we wrap it here to have a consistent interface with ProductPoint.
     """
 
-    def __init__(self, D: JacobianMorphism_divisor_class_field):
+    def __init__(self, D):
         self.D = D
         self.D1 = D[0]
         self.D2 = D[1]

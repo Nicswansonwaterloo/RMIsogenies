@@ -2,7 +2,7 @@ from sage.all import HyperellipticCurve
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 
 
-class GenusTwoStructure:
+class GenusTwoStructureAbstract:
     """
     A base class for representing an abelian surface.
     """
@@ -12,7 +12,7 @@ class GenusTwoStructure:
         self.is_jacobian = not is_product
 
 
-class GenusTwoProductStructure(GenusTwoStructure):
+class GenusTwoProductStructure(GenusTwoStructureAbstract):
     """
     A base class for representing an abelian surface which is a product of two elliptic curves.
     """
@@ -58,7 +58,7 @@ class GenusTwoProductStructure(GenusTwoStructure):
             raise IndexError("Index {} is out of range.".format(i))
 
 
-class GenusTwoJacobianStructure(GenusTwoStructure):
+class GenusTwoJacobianStructure(GenusTwoStructureAbstract):
     """
     A base class for representing an abelian surface which is a jacobian of a genus two curve.
     The representation uses richelot isogenies, so this requires a hyperelliptic curve.

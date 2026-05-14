@@ -81,7 +81,7 @@ def test_random_walk(e):
             "#99ffa8": [initial_vertex],
         },
     )
-    p.save(f"test_output/rm_graph/random_walk_e={e}.png")
+    p.save(f"random_walk_e={e}.png")
 
 
 def find_suitable_primes(e_start, e_end):
@@ -110,17 +110,16 @@ def test_non_backtracking_random_walk(e):
             "#99ffa8": [initial_vertex],
         },
     )
-    p.save(f"test_output/rm_graph/random_non_backtracking_walk_e={e}.png")
+    p.save(f"random_non_backtracking_walk_e={e}.png")
 
 
 if __name__ == "__main__":
     # print(find_suitable_primes(1000, 2000))
     # e = 1274
     # e = 458
-    e = 94
+    # e = 94
     # e = 34
     # e = 18
-    # e = 6
-    check_tkz_graph()
+    e = 6
     test_random_walk(e)
     test_non_backtracking_random_walk(e)

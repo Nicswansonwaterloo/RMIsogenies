@@ -351,10 +351,13 @@ def product_to_jacobian_2_isogeny(kernel):
         if Q != 0:
             xQ, yQ = Q.xy()
             uQ = (xQ - t2) * x**2 - t1
-            vQ = yQ * x**3 / t1
+            vQ = (yQ * x**3 / t1) % uQ
             div_Q = J([uQ, vQ])
         else:
             div_Q = J(0)
+        
+        print()
+        print(div_P, div_Q)
 
         return JacobianPoint(div_P + div_Q)
 
