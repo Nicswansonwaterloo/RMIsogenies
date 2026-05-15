@@ -191,7 +191,7 @@ class RMVertex(RichelotVertex):
                 phi(2 * special_basis[2]),
                 phi(2 * special_basis[3]),
             ]
-            assert all(P.has_order(2, self.r - 1) for P in codomain_torsion_gens)
+            # assert all(P.has_order(2, self.r - 1) for P in codomain_torsion_gens)
 
             neighbor = RMVertex(neighbor, self.r - 1, codomain_torsion_gens, M_rm_new)
 

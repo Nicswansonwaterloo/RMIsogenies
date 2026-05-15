@@ -91,7 +91,7 @@ def test_non_backtracking_random_walk_cgl():
     """Draw a non-backtracking random walk picture for the fixed test case."""
     # form parameters for hash function.
     d = 5
-    e = 32
+    e = 64
     p, f = gen_rm_hash_prime(e, d)
     initial_vertex = get_initial_vertex(p, e)
 
