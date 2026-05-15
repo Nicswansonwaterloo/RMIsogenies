@@ -5,6 +5,7 @@ from sage.all import (
     Matrix,
     cached_method,
     matrix,
+    copy,
     ZZ,
 )
 from richelot_rm.richelot_vertex import RichelotVertex
@@ -126,7 +127,7 @@ class RMVertex(RichelotVertex):
 
         # Reduce entries to canonical representatives modulo 2^r
         # TODO: make Omega and the symplectic subspaces fixed constants.
-        return C.change_ring(Integers(2**r))
+        return C.apply_map(lambda x: x % (2**r))
 
     def _form_special_basis(self, W):
         """Given a subspace W over GF(2) representing ker phi, returns a symplectic basis of A[2^r] that decends down to ker phi."""
@@ -154,25 +155,27 @@ class RMVertex(RichelotVertex):
 
         # Now, we hensel lift C0 to C:
         C = self._lift_symplectic(C0)
+        C = C.change_ring(Integers(2 ** (self.r - 1)))
         assert C.is_invertible(), f"C_lifted is not invertible:\n {C}"
         C_inv = C.inverse()
 
         # Compute the RM action on the codomain in the new basis.
-        M_rm = self.rm_action_on_two_r_torsion
+        M_rm = copy(self.rm_action_on_two_r_torsion)
         M_rm_new = C_inv * M_rm * C
         M_rm_new = M_rm_new.change_ring(ZZ)
-        
+
         # Correct issues coming from non-coprime torsion.
         assert M_rm_new[2:4, 0:2] % 2 == 0, f"Not of expected form.\n{M_rm_new}"
         M_rm_new[0:2, 2:4] *= 2
         M_rm_new[2:4, 0:2] /= 2
         M_rm_new = M_rm_new.change_ring(Integers(2 ** (self.r - 1)))
 
-        # Compute the new well-formed generators from the columns of C after pushing phi. 
-        return [
+        # Compute the new well-formed generators from the columns of C after pushing phi.
+        special_basis = [
             self._vector_to_point(col, self.two_r_torsion_generators)
             for col in C.columns()
         ]
+        return special_basis, M_rm_new
 
     @cached_method
     def get_neighbors_with_multiplicities(self):
@@ -180,16 +183,14 @@ class RMVertex(RichelotVertex):
         neighbors = {}
 
         for neighbor, phi, W in neighbors_with_edges:
-            
+
+            special_basis, M_rm_new = self._form_special_basis(W)
             codomain_torsion_gens = [
-                phi(changed_torsion_gens[0]),
-                phi(changed_torsion_gens[1]),
-                phi(2 * changed_torsion_gens[2]),
-                phi(2 * changed_torsion_gens[3]),
+                phi(special_basis[0]),
+                phi(special_basis[1]),
+                phi(2 * special_basis[2]),
+                phi(2 * special_basis[3]),
             ]
-            
-            # 
-            
             assert all(P.has_order(2, self.r - 1) for P in codomain_torsion_gens)
 
             neighbor = RMVertex(neighbor, self.r - 1, codomain_torsion_gens, M_rm_new)
@@ -201,4 +202,5 @@ class RMVertex(RichelotVertex):
 
         return neighbors
 
-# TODO: Now that weil pairing is always the standard one, correct RichelotVertex and RMVertex to reflect this. 
+
+# TODO: Now that weil pairing is always the standard one, correct RichelotVertex and RMVertex to reflect this.

@@ -59,8 +59,6 @@ def take_random_walk(initial_vertex, e, allow_backtrack=False):
     graph_dict = {}
     walk = []
     for step in range(e):
-        print(f"Step {step}: @ vertex {current_vertex}")
-
         neighbors = current_vertex.get_neighbors()
         # neighbors are returned in a deterministic order with the backtracking neighbor first.
         random_choice = (
@@ -91,7 +89,7 @@ def test_non_backtracking_random_walk_cgl():
     """Draw a non-backtracking random walk picture for the fixed test case."""
     # form parameters for hash function.
     d = 5
-    e = 10
+    e = 32
     p, f = gen_rm_hash_prime(e, d)
     initial_vertex = get_initial_vertex(p, e)
 
