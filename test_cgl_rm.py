@@ -1,7 +1,6 @@
-from sage.all import Graph, Integers, Matrix, is_prime, kronecker, next_prime, randint
+from sage.all import Graph, Integers, Matrix, is_prime, kronecker, randint
 
 from helpers import get_symplectic_basis
-from richelot_rm.product_point import ProductPoint
 from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
 from richelot_rm.richelot_vertex_RM import RMVertex
 

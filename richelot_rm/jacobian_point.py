@@ -27,6 +27,10 @@ class JacobianPoint:
 
     def order(self):
         return self.D.order()
+    
+    def has_order(self, ell, e):
+        """checks if self (assumed to be in E[ell^e]) has order ell^e"""
+        return (ell**(e - 1)) * self.D != 1
 
     def __getitem__(self, i):
         # Operator to get self[i].

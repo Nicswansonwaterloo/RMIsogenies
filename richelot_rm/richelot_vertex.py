@@ -1,4 +1,4 @@
-from sage.all import Matrix, GF, VectorSpace
+from sage.all import Matrix, GF, VectorSpace, cached_method
 
 from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
 from richelot_rm.richelot_product_isogenies import (
@@ -12,42 +12,23 @@ from richelot_rm.richelot_jacobian_isogeny import (
 
 
 class RichelotVertex:
+    """Vertex wrapper for a genus-2 structure with cached 2-torsion data."""
+
     def __init__(self, g2_structure: GenusTwoStructureAbstract, two_torsion_generators=None):
         self.g2_structure = g2_structure
-        self.two_torsion_generators = two_torsion_generators
-        self.weil_pairing_two_torsion_action = None
         self.invariants = g2_structure.get_isomorphism_class_invariants()
-        self.computed_neighbors = None
-        
+        self.two_torsion_generators = (
+            two_torsion_generators
+            if two_torsion_generators is not None
+            else self._compute_two_torsion_generators()
+        )
 
-    def _initialize_two_torsion_generators(self):
-        if self.two_torsion_generators is None:
-            if self.g2_structure.is_product:
-                self.two_torsion_generators = get_symplectic_two_torsion_prod(
-                    self.g2_structure
-                )
-            else:
-                self.two_torsion_generators = get_symplectic_two_torsion_jac(
-                    self.g2_structure
-                )
-        return self.two_torsion_generators
+    def _compute_two_torsion_generators(self):
+        """Return a symplectic 2-torsion basis for the current structure."""
+        if self.g2_structure.is_product:
+            return get_symplectic_two_torsion_prod(self.g2_structure)
+        return get_symplectic_two_torsion_jac(self.g2_structure)
 
-    def _compute_weil_pairing(self):
-        if self.two_torsion_generators is None:
-            self._initialize_two_torsion_generators()
-        
-        Me = Matrix(GF(2), 4, 4)
-        for i, P in enumerate(self.two_torsion_generators):
-            for j, Q in enumerate(self.two_torsion_generators):
-                if i == j:
-                    Me[i, j] = 0
-                    continue
-                entry = P.weil_pairing(Q, 2)
-                if entry == 1:
-                    Me[i, j] = 0
-                else:
-                    Me[i, j] = 1
-        return Me
 
     def __repr__(self):
         if self.g2_structure.is_product:
@@ -55,6 +36,7 @@ class RichelotVertex:
         return f"Jacobian: {self.invariants}"
 
     def __eq__(self, other):
+        """Equality is determined by the isomorphism class invariants."""
         if not isinstance(other, RichelotVertex):
             return False
         return self.invariants == other.invariants
@@ -62,8 +44,9 @@ class RichelotVertex:
     def __hash__(self):
         return hash(self.invariants)
 
-    # The types given by the Florian and Smith paper: https://eprint.iacr.org/2021/013.pdf
+    # The types given by Florian and Smith: https://eprint.iacr.org/2021/013.pdf
     def get_type(self):
+        """Return the Florian-Smith vertex type label."""
         if self.g2_structure.is_product:
             if self.invariants[0] == 1728 or self.invariants[1] == 1728:
                 if self.invariants[0] == self.invariants[1]:
@@ -86,6 +69,7 @@ class RichelotVertex:
         raise ValueError("Unknown genus 2 structure type.")
 
     def get_type_latex(self):
+        """Return the vertex type as a LaTeX string."""
         regular_string = self.get_type()
         conversion = {
             "S_1728": R"\sum_{1728}",
@@ -106,20 +90,35 @@ class RichelotVertex:
         }
         return conversion[regular_string]
 
-    def _vector_to_point(self, vec):
-        if self.two_torsion_generators is None:
-            self._initialize_two_torsion_generators()
-        
-        generators = self.two_torsion_generators
-        components = [int(vec[i]) * generators[i] for i in range(4)]
+    def _vector_to_point(self, vec, generators=None):
+        """Convert a vector to a torsion point using the provided generators."""
+        basis = self.two_torsion_generators if generators is None else generators
+        components = [int(vec[i]) * basis[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
+    
+    @cached_method
+    def get_weil_pairing_two_action(self):
+        """Return the Weil pairing matrix for the cached 2-torsion basis. Always returns the additive version."""
+        Me = Matrix(GF(2), 4, 4)
+        for i, P in enumerate(self.two_torsion_generators):
+            for j, Q in enumerate(self.two_torsion_generators):
+                if i == j:
+                    Me[i, j] = 0
+                    continue
+                entry = P.weil_pairing(Q, 2)
+                if entry == 1:
+                    Me[i, j] = 0
+                else:
+                    Me[i, j] = 1
+                    
+        print(Me)
+        return Me
 
+    @cached_method
     def _get_maximal_isotropic_subspaces(self):
-        if self.weil_pairing_two_torsion_action is None:
-            self.weil_pairing_two_torsion_action = self._compute_weil_pairing()
-        
+        """Return all maximal isotropic subspaces for the Weil pairing."""
         V = VectorSpace(GF(2), 4)
-        Me = self.weil_pairing_two_torsion_action
+        Me = self.get_weil_pairing_two_action()
         isotropic_subspaces = []
         for W in V.subspaces(2):
             basis_matrix = W.basis_matrix().transpose()
@@ -129,6 +128,7 @@ class RichelotVertex:
         return isotropic_subspaces
 
     def _get_all_two_kernels(self):
+        """Return all rank-2 kernels as 2-torsion points."""
         maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
         kernels = []
         for subspace in maximal_isotropic_subspaces:
@@ -138,29 +138,33 @@ class RichelotVertex:
         return kernels
 
     def _compute_isogeny(self, kernel):
+        """Compute the 2-isogeny with the given kernel."""
         if self.g2_structure.is_jacobian:
             codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
         else:
             codomain, isogeny = compute_2_isogeny_from_product(kernel)
         return codomain, isogeny
 
+    @cached_method
     def _compute_neighboring_isogenies(self):
-        if self.computed_neighbors is None:
-            kernels = self._get_all_two_kernels()
-            neighbors_with_edges = []
-            for kernel in kernels:
-                codomain, isogeny = self._compute_isogeny(kernel)
-                neighbors_with_edges.append((codomain, isogeny))
-            self.computed_neighbors = neighbors_with_edges
+        """Compute all neighboring 2-isogenies."""
+        kernels = self._get_all_two_kernels()
+        neighbors_with_edges = []
+        for kernel in kernels:
+            codomain, isogeny = self._compute_isogeny(kernel)
+            neighbors_with_edges.append((codomain, isogeny))
 
-        return self.computed_neighbors
+        return neighbors_with_edges
 
-    # This must be structured so that the first neighbor returned is the one corresponding to the dual
+    # This must be structured so that the first neighbor returned is the one corresponding to the dual.
     def get_neighbors(self):
+        """Return neighboring vertices, deduplicated."""
         neighbors_with_multiplicities = self.get_neighbors_with_multiplicities()
         return list(neighbors_with_multiplicities.keys())
     
+
     def get_neighbors_with_multiplicities(self):
+        """Return neighboring vertices with multiplicities."""
         neighbors_with_edges = self._compute_neighboring_isogenies()
         codomain_counts = {}
         for codomain, isogeny in neighbors_with_edges:

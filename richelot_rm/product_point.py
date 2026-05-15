@@ -36,6 +36,10 @@ class ProductPoint:
 
     def order(self):
         return lcm(self.P1.order(), self.P2.order())
+    
+    def has_order(self, ell, e):
+        """checks if self (assumed to be in E[ell^e]) has order ell^e"""
+        return (ell**(e - 1)) * self.P1 != 1 or (ell**(e - 1)) * self.P2 != 1 
 
     def __getitem__(self, i):
         # Operator to get self[i].
