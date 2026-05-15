@@ -1,5 +1,4 @@
-from sage.all import Matrix, GF, VectorSpace, cached_method
-
+from sage.all import Matrix, GF, VectorSpace, cached_method, ZZ
 from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
 from richelot_rm.richelot_product_isogenies import (
     compute_2_isogeny_from_product,
@@ -10,11 +9,109 @@ from richelot_rm.richelot_jacobian_isogeny import (
     get_symplectic_two_torsion_jac,
 )
 
+# The action of Omega with respect to a symplectic basis.
+OMEGA = Matrix(ZZ, [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
+# All 15 maximally isotropic subspaces of (Z/2Z)^4 with respect to OMEGA, represented as the row space of a matrix in reduced row echelon form.
+SYMPLECTIC_GL2_SUBSPACES = [
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [0, 0],
+        [0, 0],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [0, 0],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [0, 1],
+        [1, 0],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [0, 1],
+        [1, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [1, 0],
+        [0, 0],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [1, 0],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [1, 1],
+        [1, 0],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 1],
+        [1, 1],
+        [1, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [1, 0],
+        [0, 1],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [1, 0],
+        [0, 1],
+        [1, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 0],
+        [0, 0],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [1, 0],
+        [0, 0],
+        [1, 0],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [0, 0],
+    ]),
+    Matrix(GF(2), [
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [0, 1],
+    ]),
+    Matrix(GF(2), [
+        [0, 0],
+        [0, 0],
+        [1, 0],
+        [0, 1],
+    ]),
+]
+
 
 class RichelotVertex:
-    """Vertex wrapper for a genus-2 structure with cached 2-torsion data."""
+    """Vertex wrapper for a genus-2 structure with cached 2-torsion data. The two_torsion_generators must form a symplectic basis of the 2-torsion."""
 
-    def __init__(self, g2_structure: GenusTwoStructureAbstract, two_torsion_generators=None):
+    def __init__(
+        self, g2_structure: GenusTwoStructureAbstract, two_torsion_generators=None
+    ):
         self.g2_structure = g2_structure
         self.invariants = g2_structure.get_isomorphism_class_invariants()
         self.two_torsion_generators = (
@@ -28,7 +125,6 @@ class RichelotVertex:
         if self.g2_structure.is_product:
             return get_symplectic_two_torsion_prod(self.g2_structure)
         return get_symplectic_two_torsion_jac(self.g2_structure)
-
 
     def __repr__(self):
         if self.g2_structure.is_product:
@@ -93,44 +189,44 @@ class RichelotVertex:
     def _vector_to_point(self, vec, generators=None):
         """Convert a vector to a torsion point using the provided generators."""
         basis = self.two_torsion_generators if generators is None else generators
-        components = [int(vec[i]) * basis[i] for i in range(4)]
+        components = [vec[i].lift_centered() * basis[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
-    
-    @cached_method
-    def get_weil_pairing_two_action(self):
-        """Return the Weil pairing matrix for the cached 2-torsion basis. Always returns the additive version."""
-        Me = Matrix(GF(2), 4, 4)
-        for i, P in enumerate(self.two_torsion_generators):
-            for j, Q in enumerate(self.two_torsion_generators):
-                if i == j:
-                    Me[i, j] = 0
-                    continue
-                entry = P.weil_pairing(Q, 2)
-                if entry == 1:
-                    Me[i, j] = 0
-                else:
-                    Me[i, j] = 1
-                    
-        return Me
 
-    @cached_method
-    def _get_maximal_isotropic_subspaces(self):
-        """Return all maximal isotropic subspaces for the Weil pairing."""
-        V = VectorSpace(GF(2), 4)
-        Me = self.get_weil_pairing_two_action()
-        isotropic_subspaces = []
-        for W in V.subspaces(2):
-            basis_matrix = W.basis_matrix().transpose()
-            if (basis_matrix.transpose() * Me * basis_matrix).is_zero():
-                isotropic_subspaces.append(basis_matrix)
+    # Now canonically assumed to always be OMEGA
+    # @cached_method
+    # def get_weil_pairing_two_action(self):
+    #     """Return the Weil pairing matrix for the cached 2-torsion basis. Always returns the additive version."""
+    #     Me = Matrix(GF(2), 4, 4)
+    #     for i, P in enumerate(self.two_torsion_generators):
+    #         for j, Q in enumerate(self.two_torsion_generators):
+    #             if i == j:
+    #                 Me[i, j] = 0
+    #                 continue
+    #             entry = P.weil_pairing(Q, 2)
+    #             if entry == 1:
+    #                 Me[i, j] = 0
+    #             else:
+    #                 Me[i, j] = 1
 
-        return isotropic_subspaces
+    #     return Me
+
+    # Now always assumed to return SYMPLECTIC_GL2_SUBSPACES
+    # @cached_method
+    # def _get_maximal_isotropic_subspaces(self):
+    #     """Return all maximal isotropic subspaces for the Weil pairing."""
+    #     V = VectorSpace(GF(2), 4)
+    #     isotropic_subspaces = []
+    #     for W in V.subspaces(2):
+    #         basis_matrix = W.basis_matrix().transpose()
+    #         if (basis_matrix.transpose() * Me * basis_matrix).is_zero():
+    #             isotropic_subspaces.append(basis_matrix)
+
+    #     return isotropic_subspaces
 
     def _get_all_two_kernels(self):
         """Return all rank-2 kernels as 2-torsion points."""
-        maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
         kernels = []
-        for subspace in maximal_isotropic_subspaces:
+        for subspace in SYMPLECTIC_GL2_SUBSPACES:
             kernel = [self._vector_to_point(subspace.column(i)) for i in range(2)]
             kernels.append(kernel)
 
@@ -160,7 +256,6 @@ class RichelotVertex:
         """Return neighboring vertices, deduplicated."""
         neighbors_with_multiplicities = self.get_neighbors_with_multiplicities()
         return list(neighbors_with_multiplicities.keys())
-    
 
     def get_neighbors_with_multiplicities(self):
         """Return neighboring vertices with multiplicities."""

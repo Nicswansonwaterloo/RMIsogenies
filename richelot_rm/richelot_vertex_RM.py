@@ -8,25 +8,25 @@ from sage.all import (
     copy,
     ZZ,
 )
-from richelot_rm.richelot_vertex import RichelotVertex
+from richelot_rm.richelot_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, RichelotVertex
 from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
-
 
 class RMVertex(RichelotVertex):
     """Similar to RichelotVertex, but keep track of RM action on large torsion."""
 
     def __init__(
-        self, g2_structure, r, two_r_torsion_generators, rm_action_on_two_r_torsion
+        self, g2_structure, r, two_r_torsion_generators, M_rm
     ):
         r"""
         INPUT:
 
         - ``g2_structure`` -- a genus-2 structure
         - ``r`` -- exponent of $2^r$ torsion passed in.
-        - ``two_r_torsion_generators`` -- a 4-tuple generating the $2^r$-torsion. If being coming from pushing through an isogeny,
+        - ``two_r_torsion_generators`` -- a 4-tuple generating the $2^r$-torsion that is symplectic.
+                                          If being coming from pushing through an isogeny,
                                           should be ordered with ``[phi(P1), phi(P2), K1, K2]`` where <K1, K2> = ker dual(phi).
-        - ``rm_action_on_two_r_torsion`` -- RM action on $2^r$-torsion over
-            $\ZZ/2^r\ZZ$
+        - ``M_rm`` -- 4x4 RM action on $2^r$-torsion over $\ZZ/2^r\ZZ$
+        - ``two_torsion_generators`` -- a 4-tuple generating the 2-torsion, ordered with respect to the symplectic basis used for the RM action, i.e. [P1, P2, Q1, Q2] where e_2(Pi, Qj) = delta_ij.
 
         OUTPUT: none
         """
@@ -37,14 +37,14 @@ class RMVertex(RichelotVertex):
         if len(two_r_torsion_generators) != 4:
             raise ValueError("two_r_torsion_generators must have length 4.")
         if (
-            rm_action_on_two_r_torsion.nrows() != 4
-            or rm_action_on_two_r_torsion.ncols() != 4
+            M_rm.nrows() != 4
+            or M_rm.ncols() != 4
         ):
-            raise ValueError("rm_action_on_two_r_torsion must be a 4x4 matrix.")
+            raise ValueError("M_rm must be a 4x4 matrix.")
 
         self.r = r
         self.two_r_torsion_generators = two_r_torsion_generators
-        self.rm_action_on_two_r_torsion = rm_action_on_two_r_torsion
+        self.M_rm = M_rm
 
         # keep track of 2-torsion to find the neighbors.
         two_torsion_generators = [2 ** (r - 1) * P for P in two_r_torsion_generators]
@@ -54,15 +54,13 @@ class RMVertex(RichelotVertex):
 
     def _get_all_two_kernels(self, force_deterministic=True):
         """Return all kernels of 2-isogenies from the current vertex that preserve RM."""
-        maximal_isotropic_subspaces = self._get_maximal_isotropic_subspaces()
-
         # Compute matrix action on the 2-torsion basis:
-        M_rm = self.rm_action_on_two_r_torsion.change_ring(GF(2))
+        M_rm = self.M_rm.change_ring(GF(2))
         kernels = []
         subspaces = []
 
         # Check for maximally isotropic subspaces that are preserved by the RM action, i.e. M_rm * W is contained in W.
-        for subspace in maximal_isotropic_subspaces:
+        for subspace in SYMPLECTIC_GL2_SUBSPACES:
             phi_subspace = M_rm * subspace
             P = subspace.augment(phi_subspace)
             if P.rank() == 2:
@@ -96,36 +94,30 @@ class RMVertex(RichelotVertex):
         """
         n = C.nrows()
         r = self.r
-        Omega = Matrix(ZZ, [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
         assert (
-            C.transpose() * matrix(GF(2), Omega) * C == Omega
+            C.transpose() * matrix(GF(2), OMEGA) * C == OMEGA
         ), "C does not satisfy the symplectic condition mod 2."
         assert C.is_invertible(), "C is not invertible mod 2."
 
         C = Matrix(ZZ, C)
-        # Precompute the inverse of Omega over GF(2)
-        O_inv = Matrix(GF(2), Omega).inverse()
+        O_inv = Matrix(GF(2), OMEGA).inverse()
 
+        # Now we hensel lift C to satisfy C^T * Omega * C == Omega (mod 2^r) iteratively.
         for k in range(1, r):
-            # 1. Compute the normalized alternating error matrix E
-            E = (C.T * Omega * C - Omega) / (2**k)
+            E = (C.T * OMEGA * C - OMEGA) / (2**k)
             E_mod2 = Matrix(GF(2), E)
 
-            # 2. Form S as the strictly upper triangular part of E (mod 2)
-            # Since E is alternating, S + S.T == E_mod2
+            # Form S as the strictly upper triangular part of E (mod 2)
             S = Matrix(GF(2), n, n)
             for i in range(n):
                 for j in range(i + 1, n):
                     S[i, j] = E_mod2[i, j]
-
-            # 3. Compute W and lift to Z
+                    
             W_mod2 = O_inv * S
             W = Matrix(ZZ, W_mod2)
 
-            # 4. Apply the Newton step
             C = C + (2**k) * C * W
 
-        # Reduce entries to canonical representatives modulo 2^r
         # TODO: make Omega and the symplectic subspaces fixed constants.
         return C.apply_map(lambda x: x % (2**r))
 
@@ -134,9 +126,9 @@ class RMVertex(RichelotVertex):
         id_2 = identity_matrix(GF(2), 2)
 
         # First solve for V in W^T * M_e * V_0 = I_2. Solution may not be maximally isotropic.
-        A = W.transpose() * self.get_weil_pairing_two_action()
+        A = W.transpose() * OMEGA
         V_0 = A.solve_right(id_2)
-        S = V_0.transpose() * self.get_weil_pairing_two_action() * V_0
+        S = V_0.transpose() * OMEGA * V_0
 
         # Correct V such that V^T * M_e * V = 0, which ensures the new basis for the kernel is symplectic.
         if S == 0:
@@ -146,8 +138,8 @@ class RMVertex(RichelotVertex):
             V = V_0 + (W * symplectic_correction)
 
         assert (
-            V.transpose() * self.get_weil_pairing_two_action() * V == 0
-        ), f"V is not isotropic:\n {V.transpose() * self.get_weil_pairing_two_action() * V}"
+            V.transpose() * OMEGA * V == 0
+        ), f"V is not isotropic:\n {V.transpose() * OMEGA * V}"
 
         # C0, the change-of-basis matrix from the original basis to the new basis, but only on the 2-torsion.
         C0 = W.augment(V)
@@ -160,7 +152,7 @@ class RMVertex(RichelotVertex):
         C_inv = C.inverse()
 
         # Compute the RM action on the codomain in the new basis.
-        M_rm = copy(self.rm_action_on_two_r_torsion)
+        M_rm = copy(self.M_rm)
         M_rm_new = C_inv * M_rm * C
         M_rm_new = M_rm_new.change_ring(ZZ)
 
