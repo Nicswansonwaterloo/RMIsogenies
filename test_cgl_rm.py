@@ -59,6 +59,8 @@ def take_random_walk(initial_vertex, e, allow_backtrack=False):
     graph_dict = {}
     walk = []
     for step in range(e):
+        print(f"Step {step}: @ vertex {current_vertex}")
+
         neighbors = current_vertex.get_neighbors()
         # neighbors are returned in a deterministic order with the backtracking neighbor first.
         random_choice = (

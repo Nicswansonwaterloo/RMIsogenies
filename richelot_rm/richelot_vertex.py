@@ -111,7 +111,6 @@ class RichelotVertex:
                 else:
                     Me[i, j] = 1
                     
-        print(Me)
         return Me
 
     @cached_method
