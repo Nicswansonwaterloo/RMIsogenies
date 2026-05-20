@@ -84,6 +84,7 @@ def get_1728_product_example(p):
 
 
 def is_2_kernel_prod(kernel):
+    """Return True if kernel is a valid isotropic 2-torsion kernel on a product surface."""
     if not isinstance(kernel, (list, tuple)) or len(kernel) != 2:
         raise ValueError(f"Kernel must be a pair of ProductPoint instances: {kernel}")
 
@@ -94,6 +95,7 @@ def is_2_kernel_prod(kernel):
 
 
 def is_2_kernel_diagonal(kernel):
+    """Return True if the kernel factors as independent 2-isogenies on each elliptic curve factor."""
     if not is_2_kernel_prod(kernel):
         raise ValueError("Input is not a valid 2-torsion kernel.")
 
@@ -104,6 +106,7 @@ def is_2_kernel_diagonal(kernel):
 
 
 def get_diagonal_2_isogeny(kernel):
+    """Return (codomain, isogeny) for a diagonal kernel acting componentwise on each factor."""
     if not is_2_kernel_diagonal(kernel):
         raise ValueError("Input is not a diagonal 2-torsion kernel.")
 
@@ -133,6 +136,7 @@ def get_diagonal_2_isogeny(kernel):
 
 
 def is_2_kernel_prod_loop(kernel):
+    """Return True if the kernel is induced by an isomorphism E1 → E2 (produces a loop isogeny)."""
     if not is_2_kernel_prod(kernel):
         raise ValueError("Input is not a valid 2-torsion kernel.")
 
@@ -187,6 +191,7 @@ def is_2_kernel_prod_loop(kernel):
 
 
 def get_loop_2_isogeny(kernel):
+    """Return (codomain, isogeny) for a loop kernel induced by an isomorphism E1 → E2."""
     if not is_2_kernel_prod_loop(kernel):
         raise ValueError("Input is not an isomorphism-induced 2-torsion kernel.")
     gen1, gen2 = kernel
@@ -294,6 +299,10 @@ def fix_curve_model(E):
 
 
 def product_to_jacobian_2_isogeny(kernel):
+    """Return (codomain, isogeny) for the Richelot 2-isogeny from E1 x E2 to a Jacobian.
+
+    # See https://eprint.iacr.org/2022/1283.pdf §3.2.2.
+    """
     if not is_2_kernel_prod(kernel):
         raise ValueError("Input is not a valid 2-torsion kernel.")
 
@@ -334,7 +343,6 @@ def product_to_jacobian_2_isogeny(kernel):
     codomain = GenusTwoJacobianStructure(h)
     J = codomain.jac
 
-    # See https://eprint.iacr.org/2022/1283.pdf, Section 3.2.2 for derivation of formulas
     def isogeny(cp_pt: ProductPoint):
         P = iso1(cp_pt[0])
         Q = iso2(cp_pt[1])
@@ -362,6 +370,7 @@ def product_to_jacobian_2_isogeny(kernel):
 
 
 def get_symplectic_two_torsion_prod(prod_structure: GenusTwoProductStructure):
+    """Return a symplectic basis [P1, P2, Q1, Q2] of (E1 x E2)[2]."""
     P1, Q1 = prod_structure.E1.torsion_basis(2)
     P2, Q2 = prod_structure.E2.torsion_basis(2)
 
@@ -381,6 +390,7 @@ def get_symplectic_two_torsion_prod(prod_structure: GenusTwoProductStructure):
 
 
 def compute_2_isogeny_from_product(kernel):
+    """Return (codomain, isogeny) for the 2-isogeny from a product surface with the given kernel."""
     if is_2_kernel_diagonal(kernel):
         return get_diagonal_2_isogeny(kernel)
     elif is_2_kernel_prod_loop(kernel):

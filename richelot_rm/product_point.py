@@ -1,10 +1,7 @@
+"""Borrowed and modified from https://github.com/ThetaIsogenies/two-isogenies"""
 from sage.all import ZZ, lcm
 from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint
 from richelot_rm.genus_two_structures import GenusTwoProductStructure
-
-"""
-Borrowed and modified from https://github.com/ThetaIsogenies/two-isogenies
-"""
 
 
 class ProductPoint:
@@ -38,8 +35,8 @@ class ProductPoint:
         return lcm(self.P1.order(), self.P2.order())
     
     def has_order(self, ell, e):
-        """checks if self (assumed to be in E[ell^e]) has order ell^e"""
-        return (ell**(e - 1)) * self.P1 != 1 or (ell**(e - 1)) * self.P2 != 1 
+        """Return True if self has order ell^e in E1[ell^e] x E2[ell^e]."""
+        return (ell**(e - 1)) * self.P1 != 0 or (ell**(e - 1)) * self.P2 != 0
 
     def __getitem__(self, i):
         # Operator to get self[i].
@@ -93,12 +90,7 @@ class ProductPoint:
         return hash((hash(self.P1), hash(self.P2)))
 
     def weil_pairing(self, other, n):
-        """
-        The Weil pairing e_n(P, Q) for P = (P1, P2) and Q = (Q1, Q2)
-        is defined as
-
-            e_n(P, Q) = e_n(P1, Q1) * e_n(P2, Q2)
-        """
+        """Return e_n(P1, Q1) * e_n(P2, Q2)."""
         if not isinstance(other, ProductPoint):
             raise TypeError("Both inputs must be product points")
 
