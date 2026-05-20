@@ -8,6 +8,7 @@ from richelot_rm.product_point import ProductPoint
 
 
 def is_2_kernel_jac(kernel):
+    """Return True if (G1, G2) generates a valid 2-torsion kernel, i.e. G1 * G2 | h."""
     if not (isinstance(kernel, (tuple, list)) and len(kernel) == 2):
         raise ValueError("Kernel must be a tuple of length 2.")
     if not all(isinstance(P, JacobianPoint) for P in kernel):
@@ -22,6 +23,7 @@ def is_2_kernel_jac(kernel):
 
 
 def is_2_kernel_jac_split(kernel):
+    """Return True if the Richelot isogeny has split (product) codomain."""
     if not is_2_kernel_jac(kernel):
         raise ValueError(
             "The given kernel does not define a 2-isogeny on a jacobian of genus 2"
@@ -44,6 +46,7 @@ def is_2_kernel_jac_split(kernel):
 
 
 def jacobian_to_product_2_isogeny(kernel):
+    """Return (codomain, isogeny) for the split Richelot 2-isogeny from a Jacobian to a product of elliptic curves."""
     if not is_2_kernel_jac_split(kernel):
         raise ValueError(
             "The given kernel does not define a split 2-isogeny on a jacobian of genus 2"
@@ -120,7 +123,7 @@ def jacobian_to_product_2_isogeny(kernel):
         p = U_[0] / U_[2]  # PRODUCT of roots of U_: x_a * x_b
         assert (
             p != 0
-        )  # nether x_a not x_b can be zero. Perhaps a change of coordinates is needed.
+        )  # neither x_a nor x_b can be zero. Perhaps a change of coordinates is needed.
 
         # For E1: x -> x^2 := z, and y -> y := w
         # We need to compute the divisor on E1, corresponding to the sum of the image of (x_a, y_a) and (x_b, y_b), then sum it to get the image on E1.
@@ -220,6 +223,10 @@ def jacobian_to_product_2_isogeny(kernel):
 
 
 def jacobian_to_jacobian_2_isogeny(kernel):
+    """Return (codomain, isogeny) for the non-split Richelot 2-isogeny between Jacobians.
+
+    # Richelot correspondence: see Ben Smith's thesis, Ch. 4.
+    """
     gen1, gen2 = kernel
     g2_structure = gen1.parent()
     J = g2_structure.jac
@@ -308,7 +315,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
         # y = - (Py2 * hnew + Py0) / Py1
         if Py1.is_zero() and not Py2.is_zero():
             # Then Py2* w^2 + Py0 = 0 => w^2 = - Py0 / Py2
-            # So the image is the sum of two points with the same x-coordinate, but opposite y-coordinates. This code should never be readed.
+            # So the image is the sum of two points with the same x-coordinate, but opposite y-coordinates. This code should never be reached.
             return JacobianPoint(J(0))
         if Py1.is_zero() and Py2.is_zero():
             # In this case yayb = 0 and wa = wb = 0
@@ -316,19 +323,19 @@ def jacobian_to_jacobian_2_isogeny(kernel):
                 "Cannot have both Py1 and Py2 be zero:\n Px: {Px}\n Py0: {Py0}\n Py1: {Py1}\n Py2: {Py2}"
             )
 
-        d, s, _ = Py1.xgcd(Px)
-        if d == 1:
-            Py1inv = s
+        gcd, bez, _ = Py1.xgcd(Px)
+        if gcd == 1:
+            Py1inv = bez
             Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
             assert Px.degree() == 4, (
-                f"Px degree not 4: {Px}\n s: {s}\n d: {d}\n Py1: {Py1}\n Px: {Px}"
+                f"Px degree not 4: {Px}\n Py1: {Py1}"
             )
             assert Py.degree() <= 3
 
             Dx = (h_codomain - Py**2) // Px
             Dy = (-Py) % Dx
         else:
-            # In this case Py0 + Py2 * h_codomain must be divisable by d
+            # In this case Py0 + Py2 * h_codomain must be divisible by gcd
             # So for root za, we would have Py0(za) = 0
             raise NotImplementedError(
                 "Py1 and Px not coprime, cannot compute isogeny image yet."
@@ -344,6 +351,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
 
 def get_symplectic_two_torsion_jac(jac_structure: GenusTwoJacobianStructure):
+    """Return a symplectic basis [T1, T2, T3, T4] of Jac(C)[2]."""
     J = jac_structure.jac
     Rx = jac_structure.Rx
     x = jac_structure.x
@@ -373,6 +381,7 @@ def get_symplectic_two_torsion_jac(jac_structure: GenusTwoJacobianStructure):
 
 
 def compute_2_isogeny_from_jacobian(kernel):
+    """Return (codomain, isogeny) for the 2-isogeny from a Jacobian with the given kernel."""
     if is_2_kernel_jac_split(kernel):
         return jacobian_to_product_2_isogeny(kernel)
     return jacobian_to_jacobian_2_isogeny(kernel)
