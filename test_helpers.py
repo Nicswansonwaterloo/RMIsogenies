@@ -1,8 +1,33 @@
-from sage.all import Integers, Matrix, is_prime, kronecker
+from sage.all import Integers, Matrix, discrete_log, is_prime, kronecker
 
-from helpers import get_symplectic_basis
 from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
+from richelot_rm.product_point import ProductPoint
 from richelot_rm.richelot_vertex_RM import RMVertex
+
+
+def get_symplectic_basis(EA, EB, M):
+    B0, B1 = EA.torsion_basis(M)
+    B2, B3 = EB.torsion_basis(M)
+    # adjust B2 so that the pairings are the same:
+    w_B0B1 = B0.weil_pairing(B1, M)
+    w_B2B3 = B2.weil_pairing(B3, M)
+    # we want w_B0B1 = w_B2B3, so we adjust:
+    c = discrete_log(w_B0B1, w_B2B3, ord=M)
+    B2 = c * B2
+
+    # Standard symplectic form is
+    # [ 0 0 1 0 ]
+    # [ 0 0 0 1 ]
+    # [ -1 0 0 0 ]
+    # [ 0 -1 0 0 ]
+    two_dim_basis = [
+        ProductPoint(B0, EB(0)),
+        ProductPoint(EA(0), B2),
+        ProductPoint(B1, EB(0)),
+        ProductPoint(EA(0), B3),
+    ]
+
+    return two_dim_basis
 
 
 def golden_ratio_action_on_symplectic_torsion(ell=2, e=1):

@@ -27,7 +27,7 @@ the repo root.
   neighbors. Also assigns Florian–Smith type labels.
 - `richelot_rm/richelot_vertex_RM.py` — same, but carries a 4x4 RM action on
   the 2^r-torsion and only returns RM-preserving neighbors.
-- `helpers.py` — builds a symplectic 2^M-torsion basis on `E1 x E2`.
+- `test_helpers.py` — helpers for tests, including a symplectic 2^M-torsion basis on `E1 x E2`.
 - `test_cgl_rm.py` — example: non-backtracking RM-preserving random walk from
   a supersingular square, saved as a PNG.
 - `test_bfs_rm.py` — placeholder for the BFS traversal from a single starting
