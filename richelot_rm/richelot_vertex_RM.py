@@ -26,7 +26,6 @@ class RMVertex(RichelotVertex):
                                           If being coming from pushing through an isogeny,
                                           should be ordered with ``[phi(P1), phi(P2), K1, K2]`` where <K1, K2> = ker dual(phi).
         - ``M_rm`` -- 4x4 RM action on $2^r$-torsion over $\ZZ/2^r\ZZ$
-        - ``two_torsion_generators`` -- a 4-tuple generating the 2-torsion, ordered with respect to the symplectic basis used for the RM action, i.e. [P1, P2, Q1, Q2] where e_2(Pi, Qj) = delta_ij.
 
         OUTPUT: none
         """
@@ -46,14 +45,14 @@ class RMVertex(RichelotVertex):
         self.two_r_torsion_generators = two_r_torsion_generators
         self.M_rm = M_rm
 
-        # keep track of 2-torsion to find the neighbors.
-        two_torsion_generators = [2 ** (r - 1) * P for P in two_r_torsion_generators]
-
         # Importantly, we do not neccesarily pass a symplectic basis to the parent.
-        super().__init__(g2_structure, two_torsion_generators)
+        super().__init__(g2_structure)
 
-    def _get_all_two_kernels(self, force_deterministic=True):
+    def _get_all_RM_two_kernels(self, force_deterministic=True):
         """Return all kernels of 2-isogenies from the current vertex that preserve RM."""
+        two_torsion_generators = [
+            2 ** (self.r - 1) * P for P in self.two_r_torsion_generators
+        ]
         # Compute matrix action on the 2-torsion basis:
         M_rm = self.M_rm.change_ring(GF(2))
         kernels = []
@@ -73,13 +72,16 @@ class RMVertex(RichelotVertex):
             # assert W_dual == subspaces[0], "Dual kernel is not first after sorting."
 
         for subspace in subspaces:
-            kernel_gens = [self._vector_to_point(col) for col in subspace.columns()]
+            kernel_gens = [
+                self._vector_to_point(col, two_torsion_generators)
+                for col in subspace.columns()
+            ]
             kernels.append(kernel_gens)
 
         return kernels, subspaces
 
     def _compute_neighboring_isogenies(self):
-        kernels, subspaces = self._get_all_two_kernels()
+        kernels, subspaces = self._get_all_RM_two_kernels()
         neighbors_with_edges = []
         for kernel, subspace in zip(kernels, subspaces):
             codomain, isogeny = self._compute_isogeny(kernel)
@@ -118,7 +120,6 @@ class RMVertex(RichelotVertex):
 
             C = C + (2**k) * C * W
 
-        # TODO: make Omega and the symplectic subspaces fixed constants.
         return C.apply_map(lambda x: x % (2**r))
 
     def _form_special_basis(self, W):
@@ -195,4 +196,3 @@ class RMVertex(RichelotVertex):
         return neighbors
 
 
-# TODO: Now that weil pairing is always the standard one, correct RichelotVertex and RMVertex to reflect this.
