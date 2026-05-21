@@ -114,17 +114,19 @@ class RichelotVertex:
     ):
         self.g2_structure = g2_structure
         self.invariants = g2_structure.get_isomorphism_class_invariants()
-        self.two_torsion_generators = (
-            two_torsion_generators
-            if two_torsion_generators is not None
-            else self._compute_two_torsion_generators()
-        )
+        self.two_torsion_generators = two_torsion_generators
 
     def _compute_two_torsion_generators(self):
         """Return a symplectic 2-torsion basis for the current structure."""
         if self.g2_structure.is_product:
             return get_symplectic_two_torsion_prod(self.g2_structure)
         return get_symplectic_two_torsion_jac(self.g2_structure)
+
+    def _compute_two_torsion(self):
+        """Return a cached symplectic 2-torsion basis for the current structure."""
+        if self.two_torsion_generators is None:
+            self.two_torsion_generators = self._compute_two_torsion_generators()
+        return self.two_torsion_generators
 
     def __repr__(self):
         if self.g2_structure.is_product:
@@ -188,42 +190,12 @@ class RichelotVertex:
 
     def _vector_to_point(self, vec, generators=None):
         """Convert a vector to a torsion point using the provided generators."""
-        basis = self.two_torsion_generators if generators is None else generators
+        basis = self._compute_two_torsion() if generators is None else generators
         components = [vec[i].lift_centered() * basis[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
 
-    # Now canonically assumed to always be OMEGA
-    # @cached_method
-    # def get_weil_pairing_two_action(self):
-    #     """Return the Weil pairing matrix for the cached 2-torsion basis. Always returns the additive version."""
-    #     Me = Matrix(GF(2), 4, 4)
-    #     for i, P in enumerate(self.two_torsion_generators):
-    #         for j, Q in enumerate(self.two_torsion_generators):
-    #             if i == j:
-    #                 Me[i, j] = 0
-    #                 continue
-    #             entry = P.weil_pairing(Q, 2)
-    #             if entry == 1:
-    #                 Me[i, j] = 0
-    #             else:
-    #                 Me[i, j] = 1
 
-    #     return Me
-
-    # Now always assumed to return SYMPLECTIC_GL2_SUBSPACES
-    # @cached_method
-    # def _get_maximal_isotropic_subspaces(self):
-    #     """Return all maximal isotropic subspaces for the Weil pairing."""
-    #     V = VectorSpace(GF(2), 4)
-    #     isotropic_subspaces = []
-    #     for W in V.subspaces(2):
-    #         basis_matrix = W.basis_matrix().transpose()
-    #         if (basis_matrix.transpose() * Me * basis_matrix).is_zero():
-    #             isotropic_subspaces.append(basis_matrix)
-
-    #     return isotropic_subspaces
-
-    def _get_all_two_kernels(self):
+    def _get_all_RM_two_kernels(self):
         """Return all rank-2 kernels as 2-torsion points."""
         kernels = []
         for subspace in SYMPLECTIC_GL2_SUBSPACES:
@@ -243,7 +215,7 @@ class RichelotVertex:
     @cached_method
     def _compute_neighboring_isogenies(self):
         """Compute all neighboring 2-isogenies."""
-        kernels = self._get_all_two_kernels()
+        kernels = self._get_all_RM_two_kernels()
         neighbors_with_edges = []
         for kernel in kernels:
             codomain, isogeny = self._compute_isogeny(kernel)
