@@ -38,13 +38,11 @@ def take_random_walk(initial_vertex, e, allow_backtrack=False):
     return walk, Graph(graph_dict)
 
 
-
-
 def test_non_backtracking_random_walk_cgl():
     """Draw a non-backtracking random walk picture for the fixed test case."""
     # form parameters for hash function.
     d = 5
-    e = 128
+    e = 256
     p, M, f = gen_rm_hash_prime(e, d)
     initial_vertex = get_initial_vertex(p, e)
 
@@ -55,15 +53,13 @@ def test_non_backtracking_random_walk_cgl():
     labels = {v: v.get_type() for v in G.vertices()}
     non_walk = [v for v in G.vertices() if v not in walk and v != initial_vertex]
     label = (
-        rf"$K=\mathbb{{Q}}(\sqrt{{{d}}})$"
-        "\n"
-        rf"$p={M}\cdot 2^{{{e}}}\cdot {f} - 1$"
+        rf"$K=\mathbb{{Q}}(\sqrt{{{d}}})$" "\n" rf"$p={M}\cdot 2^{{{e}}}\cdot {f} - 1$"
     )
     plot = G.plot(
         layout="spring",
         iterations=500,  # Increase iterations for a better spring layout settle
-        vertex_size=200, # Adjust vertex size to fit labels better
-        figsize=(10, 10), # Larger figure size distributes the nodes more widely
+        vertex_size=200,  # Adjust vertex size to fit labels better
+        figsize=(10, 10),  # Larger figure size distributes the nodes more widely
         vertex_labels=labels,
         vertex_colors={
             "#9dc3ff": walk,
