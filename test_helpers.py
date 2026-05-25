@@ -4,8 +4,19 @@ from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
 from richelot_rm.product_point import ProductPoint
 from richelot_rm.richelot_vertex_RM import RMVertex
 
+def get_symplectic_basis_square(E, M):
+    P, Q = E.torsion_basis(M)
+    two_dim_basis = [
+        ProductPoint(P, E(0)),
+        ProductPoint(E(0), P),
+        ProductPoint(Q, E(0)),
+        ProductPoint(E(0), Q),
+    ]
 
-def get_symplectic_basis(EA, EB, M):
+    return two_dim_basis
+
+
+def get_symplectic_basis_product(EA, EB, M):
     B0, B1 = EA.torsion_basis(M)
     B2, B3 = EB.torsion_basis(M)
     # adjust B2 so that the pairings are the same:
@@ -60,8 +71,7 @@ def get_initial_vertex(p, e):
     M = 2**r
     assert (p + 1) % M == 0, "p + 1 must be divisible by 2^(e + 2)."
     square = get_arbitrary_square_example(p)
-    E1, E2 = square.E1, square.E2
-    torsion_generators = get_symplectic_basis(E1, E2, M)
+    torsion_generators = get_symplectic_basis_square(square.E1, M)
     rm_action = golden_ratio_action_on_symplectic_torsion(2, r)
 
     return RMVertex(square, r, torsion_generators, rm_action)
