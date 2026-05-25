@@ -8,8 +8,8 @@ from sage.all import (
     copy,
     ZZ,
 )
-from richelot_rm.richelot_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, RichelotVertex
-from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
+from theta_rm.superspecial_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, RichelotVertex
+from theta_rm.genus_two_structures import ThetaStructure
 
 class RMVertex(RichelotVertex):
     """Similar to RichelotVertex, but keep track of RM action on large torsion."""
@@ -29,7 +29,7 @@ class RMVertex(RichelotVertex):
 
         OUTPUT: none
         """
-        if not isinstance(g2_structure, GenusTwoStructureAbstract):
+        if not isinstance(g2_structure, ThetaStructure):
             raise TypeError("g2_structure must be a genus-2 structure.")
         if r < 1:
             raise ValueError("r must be a positive integer.")

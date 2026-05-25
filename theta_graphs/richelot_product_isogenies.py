@@ -11,10 +11,10 @@ from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 
-from richelot_rm.jacobian_point import JacobianPoint
-from richelot_rm.product_point import ProductPoint
-from richelot_rm.genus_two_structures import (
-    GenusTwoProductStructure,
+from theta_rm.jacobian_point import JacobianPoint
+from theta_rm.product_point import ProductPoint
+from theta_rm.genus_two_structures import (
+    ProductThetaStructure,
     GenusTwoJacobianStructure,
 )
 
@@ -24,7 +24,7 @@ def get_square_1728_example(p):
         raise ValueError(f"p={p} must be 3 mod 4 for j=1728 to be supersingular")
     F = GF(p**2, modulus=[1, 0, 1], names="i")
     E1728 = EllipticCurve(F, [0, 0, 0, 1, 0])
-    return GenusTwoProductStructure(E1728, E1728)
+    return ProductThetaStructure(E1728, E1728)
 
 
 def get_square_0_example(p):
@@ -32,7 +32,7 @@ def get_square_0_example(p):
         raise ValueError(f"p={p} must be 2 mod 3 for j=0 to be supersingular")
     F = GF(p**2)
     E0 = EllipticCurve(F, [0, 0, 0, 0, 1]).montgomery_model()
-    return GenusTwoProductStructure(E0, E0)
+    return ProductThetaStructure(E0, E0)
 
 
 def get_0_and_1728_example(p):
@@ -43,7 +43,7 @@ def get_0_and_1728_example(p):
     F = GF(p**2)
     E0 = EllipticCurve(F, [0, 0, 0, 0, 1]).montgomery_model()
     E1728 = EllipticCurve(F, [0, 0, 0, 1, 0])
-    return GenusTwoProductStructure(E0, E1728)
+    return ProductThetaStructure(E0, E1728)
 
 
 def _random_supersingular_curve(p):
@@ -56,13 +56,13 @@ def _random_supersingular_curve(p):
 
 def get_arbitrary_square_example(p):
     E = _random_supersingular_curve(p)
-    return GenusTwoProductStructure(E, E)
+    return ProductThetaStructure(E, E)
 
 
 def get_arbitrary_product_example(p):
     E1 = _random_supersingular_curve(p).montgomery_model()
     E2 = _random_supersingular_curve(p).montgomery_model()
-    return GenusTwoProductStructure(E1, E2)
+    return ProductThetaStructure(E1, E2)
 
 
 def get_0_product_example(p):
@@ -71,7 +71,7 @@ def get_0_product_example(p):
     F = GF(p**2)
     E0 = EllipticCurve(F, [0, 0, 0, 0, 1]).montgomery_model()
     E1 = _random_supersingular_curve(p).montgomery_model()
-    return GenusTwoProductStructure(E0, E1)
+    return ProductThetaStructure(E0, E1)
 
 
 def get_1728_product_example(p):
@@ -80,7 +80,7 @@ def get_1728_product_example(p):
     F = GF(p**2)
     E1728 = EllipticCurve(F, [0, 0, 0, 1, 0])
     E1 = _random_supersingular_curve(p).montgomery_model()
-    return GenusTwoProductStructure(E1728, E1)
+    return ProductThetaStructure(E1728, E1)
 
 
 def is_2_kernel_prod(kernel):
@@ -126,7 +126,7 @@ def get_diagonal_2_isogeny(kernel):
 
     phi1 = EllipticCurveIsogeny(E1, P)
     phi2 = EllipticCurveIsogeny(E2, Q)
-    codomain = GenusTwoProductStructure(phi1.codomain(), phi2.codomain())
+    codomain = ProductThetaStructure(phi1.codomain(), phi2.codomain())
 
     def isogeny(cp_pt: ProductPoint):
         P, Q = cp_pt
@@ -211,7 +211,7 @@ def get_loop_2_isogeny(kernel):
                 P, Q = cp_pt
                 return ProductPoint(iso(P) - Q, -iso(P) + Q)
 
-            codomain = GenusTwoProductStructure(E2, E2)
+            codomain = ProductThetaStructure(E2, E2)
             return codomain, isogeny
 
         if j1 == 0:
@@ -231,7 +231,7 @@ def get_loop_2_isogeny(kernel):
                     P = iso(P)
                     return ProductPoint(zeta(zeta(P)) - Q, P - zeta(Q))
 
-                codomain = GenusTwoProductStructure(E2, E2)
+                codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
 
             # kernel = (\zeta^2 P, P), (\zeta^2 Q, Q)
@@ -244,7 +244,7 @@ def get_loop_2_isogeny(kernel):
                     P = iso(P)
                     return ProductPoint(zeta(P) - Q, P - zeta(zeta(Q)))
 
-                codomain = GenusTwoProductStructure(E2, E2)
+                codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
 
         if j1 == 1728:
@@ -264,7 +264,7 @@ def get_loop_2_isogeny(kernel):
                     P = iso(P)
                     return ProductPoint(iota(P) + Q, P - iota(Q))
 
-                codomain = GenusTwoProductStructure(E2, E2)
+                codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
 
     raise NotImplementedError(
@@ -369,7 +369,7 @@ def product_to_jacobian_2_isogeny(kernel):
     return codomain, isogeny
 
 
-def get_symplectic_two_torsion_prod(prod_structure: GenusTwoProductStructure):
+def get_symplectic_two_torsion_prod(prod_structure: ProductThetaStructure):
     """Return a symplectic basis [P1, P2, Q1, Q2] of (E1 x E2)[2]."""
     P1, Q1 = prod_structure.E1.torsion_basis(2)
     P2, Q2 = prod_structure.E2.torsion_basis(2)

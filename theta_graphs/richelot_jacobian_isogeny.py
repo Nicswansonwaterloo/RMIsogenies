@@ -1,10 +1,10 @@
 from sage.all import Matrix, vector, EllipticCurve
-from richelot_rm.genus_two_structures import (
+from theta_rm.genus_two_structures import (
     GenusTwoJacobianStructure,
-    GenusTwoProductStructure,
+    ProductThetaStructure,
 )
-from richelot_rm.jacobian_point import JacobianPoint
-from richelot_rm.product_point import ProductPoint
+from theta_rm.jacobian_point import JacobianPoint
+from theta_rm.product_point import ProductPoint
 
 
 def is_2_kernel_jac(kernel):
@@ -91,7 +91,7 @@ def jacobian_to_product_2_isogeny(kernel):
     p2norm = (x + H11 * H20 * H30) * (x + H21 * H10 * H30) * (x + H31 * H10 * H20)
     E1 = EllipticCurve([0, p1norm[2], 0, p1norm[1], p1norm[0]])
     E2 = EllipticCurve([0, p2norm[2], 0, p2norm[1], p2norm[0]])
-    codomain = GenusTwoProductStructure(E1, E2)
+    codomain = ProductThetaStructure(E1, E2)
 
     def morphE1(x, y):
         # from y^2=p1 to y^2=p1norm

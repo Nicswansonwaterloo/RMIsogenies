@@ -1,10 +1,10 @@
-from sage.all import Matrix, GF, VectorSpace, cached_method, ZZ
-from richelot_rm.genus_two_structures import GenusTwoStructureAbstract
-from richelot_rm.richelot_product_isogenies import (
+from sage.all import Matrix, GF, cached_method, ZZ
+from theta_rm.genus_two_structures import ThetaStructure
+from theta_rm.richelot_product_isogenies import (
     compute_2_isogeny_from_product,
     get_symplectic_two_torsion_prod,
 )
-from richelot_rm.richelot_jacobian_isogeny import (
+from theta_rm.richelot_jacobian_isogeny import (
     compute_2_isogeny_from_jacobian,
     get_symplectic_two_torsion_jac,
 )
@@ -110,7 +110,7 @@ class RichelotVertex:
     """Vertex wrapper for a genus-2 structure with cached 2-torsion data. The two_torsion_generators must form a symplectic basis of the 2-torsion."""
 
     def __init__(
-        self, g2_structure: GenusTwoStructureAbstract, two_torsion_generators=None
+        self, g2_structure: ThetaStructure, two_torsion_generators=None
     ):
         self.g2_structure = g2_structure
         self.invariants = g2_structure.get_isomorphism_class_invariants()

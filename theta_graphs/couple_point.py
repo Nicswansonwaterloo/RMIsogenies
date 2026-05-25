@@ -1,14 +1,14 @@
-"""Borrowed and modified from https://github.com/ThetaIsogenies/two-isogenies"""
 from sage.all import ZZ, lcm
+from theta_rm.genus_two_structures import ProductThetaStructure
+from vendors.Theta_SageMath.utilities.discrete_log import weil_pairing_pari
 from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint
-from richelot_rm.genus_two_structures import GenusTwoProductStructure
 
 
-class ProductPoint:
+class CouplePoint:
     """
     A helper class which represents an element P = (P1, P2) in E1 x E2
     and allows us to compute certain useful functions, such as adding,
-    doubling or computing the Weil pairing of e(P,Q) for P,Q in E1 x E2
+    doubling or comouting the Weil pairing of e(P,Q) for P,Q in E1 x E2
     """
 
     def __init__(self, P1, P2):
@@ -20,10 +20,10 @@ class ProductPoint:
         self.P2 = P2
 
     def __repr__(self):
-        return "[ {} , {} ]".format(self.P1, self.P2)
+        return "[{},{}]".format(self.P1, self.P2)
 
     def parent(self):
-        return GenusTwoProductStructure(*self.curves())
+        return ProductThetaStructure(*self.curves())
 
     def curves(self):
         return (self.P1.curve(), self.P2.curve())
@@ -33,6 +33,23 @@ class ProductPoint:
 
     def order(self):
         return lcm(self.P1.order(), self.P2.order())
+
+    def double(self):
+        """
+        Computes [2] P = ([2] P1, [2] P2)
+        """
+        return ZZ(2) * self
+
+    def double_iter(self, n):
+        """
+        Compute [2^n] P = ([2^n] P1, [2^n] P2)
+        """
+        # When the scalar is a python int, then
+        # sagemath does multiplication naively, when
+        # the scalar in a Sage type, it instead calls
+        # _acted_upon_, which calls pari, which is fast
+        m = ZZ(2**n)
+        return m * self
     
     def has_order(self, ell, e):
         """Return True if self has order ell^e in E1[ell^e] x E2[ell^e]."""
@@ -64,13 +81,13 @@ class ProductPoint:
         return self.P1 == other.P1 and self.P2 == other.P2
 
     def __add__(self, other):
-        return ProductPoint(self.P1 + other.P1, self.P2 + other.P2)
+        return CouplePoint(self.P1 + other.P1, self.P2 + other.P2)
 
     def __sub__(self, other):
-        return ProductPoint(self.P1 - other.P1, self.P2 - other.P2)
+        return CouplePoint(self.P1 - other.P1, self.P2 - other.P2)
 
     def __neg__(self):
-        return ProductPoint(-self.P1, -self.P2)
+        return CouplePoint(-self.P1, -self.P2)
 
     def __mul__(self, m):
         """
@@ -81,24 +98,26 @@ class ProductPoint:
         # the scalar in a Sage type, it instead calls
         # _acted_upon_, which calls pari, which is fast
         m = ZZ(m)
-        return ProductPoint(m * self.P1, m * self.P2)
+        return CouplePoint(m * self.P1, m * self.P2)
 
     def __rmul__(self, m):
         return self * m
 
-    def __hash__(self):
-        return hash((hash(self.P1), hash(self.P2)))
-
     def weil_pairing(self, other, n):
-        """Return e_n(P1, Q1) * e_n(P2, Q2)."""
-        if not isinstance(other, ProductPoint):
-            raise TypeError("Both inputs must be product points")
+        """
+        The Weil pairing e_n(P, Q) for P = (P1, P2) and Q = (Q1, Q2)
+        is defined as
+
+            e_n(P, Q) = e_n(P1, Q1) * e_n(P2, Q2)
+        """
+        if not isinstance(other, CouplePoint):
+            raise TypeError("Both inputs must be couple points")
 
         P1, P2 = self.points()
         Q1, Q2 = other.points()
 
-        ePQ1 = P1.weil_pairing(Q1, n)
-        ePQ2 = P2.weil_pairing(Q2, n)
+        ePQ1 = weil_pairing_pari(P1, Q1, n)
+        ePQ2 = weil_pairing_pari(P2, Q2, n)
 
         Fp2 = P1.base_ring()
         return Fp2(ePQ1 * ePQ2)
