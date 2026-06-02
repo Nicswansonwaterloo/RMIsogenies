@@ -14,6 +14,7 @@ from vendors.Theta_SageMath.theta_structures.dimension_one import (
     montgomery_point_to_theta_point,
     montgomery_torsion_to_theta_null_point,
 )
+from vendors.Theta_SageMath.utilities.batched_inversion import batched_inversion
 
 cm = get_coercion_model()
 

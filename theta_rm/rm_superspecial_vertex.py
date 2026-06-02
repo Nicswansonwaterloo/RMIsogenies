@@ -8,33 +8,22 @@ from sage.all import (
     copy,
     ZZ,
 )
-from theta_rm.superspecial_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, RichelotVertex
+from theta_rm.superspecial_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, PPASVertex
 from theta_rm.genus_two_structures import ThetaStructure
+from theta_rm.torsion_wrappers import ThetaTorsion
 
-class RMVertex(RichelotVertex):
-    """Similar to RichelotVertex, but keep track of RM action on large torsion."""
+class RMVertex(PPASVertex):
+    """Similar to PPASVertex, but keep track of RM action on large torsion."""
 
     def __init__(
-        self, g2_structure, r, two_r_torsion_generators, M_rm
+        self, g2_structure, r, two_r_theta_torsion, M_rm
     ):
-        r"""
-        INPUT:
-
-        - ``g2_structure`` -- a genus-2 structure
-        - ``r`` -- exponent of $2^r$ torsion passed in.
-        - ``two_r_torsion_generators`` -- a 4-tuple generating the $2^r$-torsion that is symplectic.
-                                          If being coming from pushing through an isogeny,
-                                          should be ordered with ``[phi(P1), phi(P2), K1, K2]`` where <K1, K2> = ker dual(phi).
-        - ``M_rm`` -- 4x4 RM action on $2^r$-torsion over $\ZZ/2^r\ZZ$
-
-        OUTPUT: none
-        """
         if not isinstance(g2_structure, ThetaStructure):
             raise TypeError("g2_structure must be a genus-2 structure.")
-        if r < 1:
-            raise ValueError("r must be a positive integer.")
-        if len(two_r_torsion_generators) != 4:
-            raise ValueError("two_r_torsion_generators must have length 4.")
+        if r < 3:
+            raise ValueError("r must be at least 3.")
+        if not isinstance(two_r_theta_torsion, ThetaTorsion):
+            raise ValueError("two_r_theta_torsion must be a ThetaTorsion instance.")
         if (
             M_rm.nrows() != 4
             or M_rm.ncols() != 4
@@ -42,18 +31,14 @@ class RMVertex(RichelotVertex):
             raise ValueError("M_rm must be a 4x4 matrix.")
 
         self.r = r
-        self.two_r_torsion_generators = two_r_torsion_generators
+        self.two_r_theta_torsion = two_r_theta_torsion
         self.M_rm = M_rm
 
-        # Importantly, we do not neccesarily pass a symplectic basis to the parent.
         super().__init__(g2_structure)
 
-    def _get_all_RM_two_kernels(self, force_deterministic=True):
-        """Return all kernels of 2-isogenies from the current vertex that preserve RM."""
-        two_torsion_generators = [
-            2 ** (self.r - 1) * P for P in self.two_r_torsion_generators
-        ]
+    def _get_all_kernels(self, force_deterministic=True):
         # Compute matrix action on the 2-torsion basis:
+        # TODO: it may be a problem that this is over GF(2) now...
         M_rm = self.M_rm.change_ring(GF(2))
         kernels = []
         subspaces = []
@@ -71,23 +56,21 @@ class RMVertex(RichelotVertex):
             # W_dual = Matrix(GF(2), [[0, 0], [0, 0], [1, 0], [0, 1]])
             # assert W_dual == subspaces[0], "Dual kernel is not first after sorting."
 
+        if self.eight_torsion is None:
+            self.eight_torsion = self.two_r_theta_torsion.get_projection(3)
         for subspace in subspaces:
-            kernel_gens = [
-                self._vector_to_point(col, two_torsion_generators)
-                for col in subspace.columns()
-            ]
-            kernels.append(kernel_gens)
+            kernels.append(ThetaTorsion(self.eight_torsion.matrix_to_kernel(subspace), self.r))
 
         return kernels, subspaces
 
-    def _compute_neighboring_isogenies(self):
-        kernels, subspaces = self._get_all_RM_two_kernels()
-        neighbors_with_edges = []
-        for kernel, subspace in zip(kernels, subspaces):
-            codomain, isogeny = self._compute_isogeny(kernel)
-            neighbors_with_edges.append((codomain, isogeny, subspace))
+    # def _compute_neighboring_isogenies(self):
+    #     kernels, subspaces = self._get_all_kernels()
+    #     neighbors_with_edges = []
+    #     for kernel, subspace in zip(kernels, subspaces):
+    #         codomain, isogeny = self._compute_isogeny(kernel)
+    #         neighbors_with_edges.append((codomain, isogeny, subspace))
 
-        return neighbors_with_edges
+    #     return neighbors_with_edges
 
     def _lift_symplectic(self, C):
         """
@@ -165,7 +148,7 @@ class RMVertex(RichelotVertex):
 
         # Compute the new well-formed generators from the columns of C after pushing phi.
         special_basis = [
-            self._vector_to_point(col, self.two_r_torsion_generators)
+            self._vector_to_point(col, self.two_r_theta_torsion)
             for col in C.columns()
         ]
         return special_basis, M_rm_new

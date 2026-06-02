@@ -164,6 +164,106 @@ class ThetaPoint:
 
         coords = (X, Y, Z, T)
         return P.parent()(coords)
+    
+    def diff_add_ladder(P, Q, PQ, m):
+            """
+            Given the theta points of Q and self - Q (PQ), computes the theta point of
+            self + [m]Q using a 3-point Montgomery ladder.
+
+            NOTE: Assumes that no coordinate is zero at any point during the doubling.
+
+            Cost: |m|_bits * (1 diff_addition + 1 double)
+            """
+            # Ensure m is an integer
+            if not isinstance(m, (int, Integer)):
+                try:
+                    m = Integer(m)
+                except Exception:
+                    raise TypeError(f"Cannot coerce input scalar {m = } to an integer")
+
+            if m == 0:
+                return P
+
+            # Handle negative scalars:
+            # self - |m|Q is equivalent to self + |m|(-Q). 
+            # The required difference point is self - (-Q) = self + Q.
+            # We can compute this initial difference using one standard diff_addition.
+            if m < 0:
+                PQ = P.diff_addition(Q, PQ)
+                m = abs(m)
+
+            A = Q
+            B = P
+            C = PQ
+
+            # Process bits from Least Significant Bit (LSB) to Most Significant Bit (MSB)
+            # bin(m)[2:] gives the binary string; reversed() lets us read LSB first.
+            for bit in reversed(bin(m)[2:]):
+                if bit == '1':
+                    # B_new = A + B. The difference between A and B is maintained in C.
+                    B = A.diff_addition(B, C)
+                else:
+                    # C_new = A - C. By passing B (which is A + C), diff_addition returns the difference.
+                    C = A.diff_addition(C, B)
+                    
+                A = A.double()
+
+            return B
+        
+    def extended_addition(P, Q, R, PQ, QR, PR):
+            """
+            Given the theta points of Q, R, P+Q (PQ), Q+R (QR), and P+R (PR),
+            computes the theta point of P + Q + R using 3-way addition Riemann relations.
+            
+            NOTE: Assumes self is P.
+            """
+            # Extract precomputations
+            Y0, Z0, T0 = P.parent()._arithmetic_precomputation()[-3:]
+
+            # Step 1: Compute the squared theta coordinates of the partial sums
+            # We need the Hadamard transforms of the pairs to build the Riemann system
+            pq1, pq2, pq3, pq4 = PQ.squared_theta()
+            r1, r2, r3, r4 = R.squared_theta()
+            
+            pr1, pr2, pr3, pr4 = PR.squared_theta()
+            q1, q2, q3, q4 = Q.squared_theta()
+            
+            qr1, qr2, qr3, qr4 = QR.squared_theta()
+            p1, p2, p3, p4 = P.squared_theta()
+
+            # Step 2: Cross-multiply the squared coordinates
+            # According to the Riemann relations for 3-way addition, the products of the 
+            # theta constants of the sums and the base points are algebraically linked to P+Q+R.
+            # We construct the unscaled coordinates of the target point.
+            
+            # Note: We use the symmetric combinations of (P+Q, R), (P+R, Q), and (Q+R, P)
+            X_sym = (pq1 * r1) + (pr1 * q1) + (qr1 * p1)
+            Y_sym = Y0 * ((pq2 * r2) + (pr2 * q2) + (qr2 * p2))
+            Z_sym = Z0 * ((pq3 * r3) + (pr3 * q3) + (qr3 * p3))
+            T_sym = T0 * ((pq4 * r4) + (pr4 * q4) + (qr4 * p4))
+
+            # Step 3: Apply the Hadamard transform to map back to standard coordinates
+            X, Y, Z, T = P.to_hadamard(X_sym, Y_sym, Z_sym, T_sym)
+
+            # Step 4: Scale by the base point components to normalize the projective equivalence
+            # (This avoids a division by zero if we were to solve the quadratic exactly)
+            Px, Py, Pz, Pt = P.coords()
+            Qx, Qy, Qz, Qt = Q.coords()
+            Rx, Ry, Rz, Rt = R.coords()
+
+            # Scale by the product of the base coordinates to balance the projective weights
+            scale_x = Px * Qx * Rx
+            scale_y = Py * Qy * Ry
+            scale_z = Pz * Qz * Rz
+            scale_t = Pt * Qt * Rt
+
+            X = X * scale_x
+            Y = Y * scale_y
+            Z = Z * scale_z
+            T = T * scale_t
+
+            coords = (X, Y, Z, T)
+            return P.parent()(coords)
 
     def scale(self, n):
         """
@@ -318,3 +418,5 @@ class ThetaPoint:
     #         return 1
     #     else:
     #         return -1
+
+

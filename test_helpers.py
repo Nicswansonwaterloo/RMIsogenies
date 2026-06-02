@@ -1,8 +1,9 @@
 from sage.all import Integers, Matrix, discrete_log, is_prime, kronecker
 
-from theta_rm.richelot_product_isogenies import get_arbitrary_square_example
+from theta_rm.theta_product_isogenies import get_arbitrary_square_example
 from theta_rm.couple_point import CouplePoint
 from theta_rm.rm_superspecial_vertex import RMVertex
+from theta_rm.torsion_wrappers import ThetaTorsion
 
 def get_symplectic_basis_square(E, M):
     P, Q = E.torsion_basis(M)
@@ -74,7 +75,9 @@ def get_initial_vertex(p, e):
     torsion_generators = get_symplectic_basis_square(square.E1, M)
     rm_action = golden_ratio_action_on_symplectic_torsion(2, r)
 
-    return RMVertex(square, r, torsion_generators, rm_action)
+    # Extra torsion data wrapper: 
+    theta_torsion = ThetaTorsion(torsion_generators, r)
+    return RMVertex(square, r, theta_torsion, rm_action)
 
 
 def gen_rm_hash_prime(e, d):

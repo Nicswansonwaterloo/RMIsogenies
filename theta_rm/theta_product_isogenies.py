@@ -4,14 +4,13 @@ from sage.all import (
     Matrix,
     discrete_log,
     inverse_mod,
-    vector,
-    PolynomialRing,
 )
 from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_curve
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
 from theta_rm.genus_two_structures import ProductThetaStructure
 from theta_rm.couple_point import CouplePoint
+from vendors.Theta_SageMath.theta_isogenies.gluing_isogeny import GluingThetaIsogeny
 
 # from theta_rm.theta_point import ThetaPoint
 
@@ -80,12 +79,14 @@ def get_1728_product_example(p):
     return ProductThetaStructure(E1728, E1)
 
 
-def is_2_kernel_prod(kernel):
-    """Return True if kernel is a valid isotropic 2-torsion kernel on a product surface."""
-    if not isinstance(kernel, (list, tuple)) or len(kernel) != 2:
-        raise ValueError(f"Kernel must be a pair of CouplePoint instances: {kernel}")
+def is_2_kernel_prod(above_kernel):
+    """Return True if kernel is 8 torsion above isotropic 2-kernel on a product surface."""
+    if len(above_kernel) != 2 or not all(
+        isinstance(gen, CouplePoint) for gen in above_kernel
+    ):
+        return False
 
-    gen1, gen2 = kernel
+    gen1, gen2 = [4 * gen for gen in above_kernel]
     is_isotropic = gen1.weil_pairing(gen2, 2) == 1
     is_order_2 = gen1.order() == 2 and gen2.order() == 2
     return is_isotropic and is_order_2
@@ -93,9 +94,6 @@ def is_2_kernel_prod(kernel):
 
 def is_2_kernel_diagonal(kernel):
     """Return True if the kernel factors as independent 2-isogenies on each elliptic curve factor."""
-    if not is_2_kernel_prod(kernel):
-        raise ValueError("Input is not a valid 2-torsion kernel.")
-
     (P1, Q1), (P2, Q2) = kernel
     if P1 == 0 or P2 == 0 or Q1 == 0 or Q2 == 0:
         return True
@@ -134,9 +132,6 @@ def get_diagonal_2_isogeny(kernel):
 
 def is_2_kernel_prod_loop(kernel):
     """Return True if the kernel is induced by an isomorphism E1 → E2 (produces a loop isogeny)."""
-    if not is_2_kernel_prod(kernel):
-        raise ValueError("Input is not a valid 2-torsion kernel.")
-
     gen1, gen2 = kernel
     E1 = gen1[0].curve()
     E2 = gen1[1].curve()
@@ -189,8 +184,6 @@ def is_2_kernel_prod_loop(kernel):
 
 def get_loop_2_isogeny(kernel):
     """Return (codomain, isogeny) for a loop kernel induced by an isomorphism E1 → E2."""
-    if not is_2_kernel_prod_loop(kernel):
-        raise ValueError("Input is not an isomorphism-induced 2-torsion kernel.")
     gen1, gen2 = kernel
     E1 = gen1[0].curve()
     E2 = gen1[1].curve()
@@ -204,9 +197,9 @@ def get_loop_2_isogeny(kernel):
         iso = E1.isomorphism_to(E2)
         if iso(gen1[0]) == gen1[1] and iso(gen2[0]) == gen2[1]:
 
-            def isogeny(cp_pt: ProductPoint):
+            def isogeny(cp_pt: CouplePoint):
                 P, Q = cp_pt
-                return ProductPoint(iso(P) - Q, -iso(P) + Q)
+                return CouplePoint(iso(P) - Q, -iso(P) + Q)
 
             codomain = ProductThetaStructure(E2, E2)
             return codomain, isogeny
@@ -223,10 +216,10 @@ def get_loop_2_isogeny(kernel):
             # [ 1    -\zeta]
             if zeta(P1) == P2 and zeta(Q1) == Q2:
 
-                def isogeny(cp_pt: ProductPoint):
+                def isogeny(cp_pt: CouplePoint):
                     P, Q = cp_pt
                     P = iso(P)
-                    return ProductPoint(zeta(zeta(P)) - Q, P - zeta(Q))
+                    return CouplePoint(zeta(zeta(P)) - Q, P - zeta(Q))
 
                 codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
@@ -236,10 +229,10 @@ def get_loop_2_isogeny(kernel):
             # [ 1   -\zeta^2]
             if zeta(zeta(P1)) == P2 and zeta(zeta(Q1)) == Q2:
 
-                def isogeny(cp_pt: ProductPoint):
+                def isogeny(cp_pt: CouplePoint):
                     P, Q = cp_pt
                     P = iso(P)
-                    return ProductPoint(zeta(P) - Q, P - zeta(zeta(Q)))
+                    return CouplePoint(zeta(P) - Q, P - zeta(zeta(Q)))
 
                 codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
@@ -256,10 +249,10 @@ def get_loop_2_isogeny(kernel):
             # [ 1   -iota]
             if iota(P1) == P2 and iota(Q1) == Q2:
 
-                def isogeny(cp_pt: ProductPoint):
+                def isogeny(cp_pt: CouplePoint):
                     P, Q = cp_pt
                     P = iso(P)
-                    return ProductPoint(iota(P) + Q, P - iota(Q))
+                    return CouplePoint(iota(P) + Q, P - iota(Q))
 
                 codomain = ProductThetaStructure(E2, E2)
                 return codomain, isogeny
@@ -269,63 +262,22 @@ def get_loop_2_isogeny(kernel):
     )
 
 
-def is_bad_model(kernel):
-    P1, P2 = kernel[0]
-    Q1, Q2 = kernel[1]
-    Fp2 = P1.curve().base()
-    # The roots of the cubics of E1_iso and E2_iso
-    a1, a2, a3 = P1[0], Q1[0], (P1 + Q1)[0]
-    b1, b2, b3 = P2[0], Q2[0], (P2 + Q2)[0]
-    # Compute coefficients
-    M = Matrix(Fp2, [[a1 * b1, a1, b1], [a2 * b2, a2, b2], [a3 * b3, a3, b3]])
-    return M.determinant() == 0
-
-
-def is_bad_elliptic_curve_model(E):
-    if E.a1() != 0 or E.a3() != 0:
-        return True
-    if E.a6() == 0:
-        return True
-    return False
-
-
-def fix_curve_model(E):
-    Psi = WeierstrassIsomorphism(E, (1, -1, 0, 0))
-    E_fixed = Psi.codomain()
-    return E_fixed, Psi
-
-
-def product_to_jacobian_2_isogeny(kernel):
-    """Return (codomain, isogeny) for the Richelot 2-isogeny from E1 x E2 to a Jacobian."""
-    Pro
+def product_to_jacobian_2_isogeny(above_kernel):
+    """Return (codomain, isogeny) for the Richelot 2-isogeny from E1 x E2 to a ThetaStructure (non-product)."""
+    isogeny = GluingThetaIsogeny(*above_kernel)
+    codomain = isogeny.codomain()
     return codomain, isogeny
 
 
-def get_symplectic_two_torsion_prod(prod_structure: ProductThetaStructure):
-    """Return a symplectic basis [P1, P2, Q1, Q2] of (E1 x E2)[2]."""
-    P1, Q1 = prod_structure.E1.torsion_basis(2)
-    P2, Q2 = prod_structure.E2.torsion_basis(2)
+def compute_2_isogeny_from_product(above_kernel):
+    """Return (codomain, isogeny) for the 2-isogeny from a ProductThetaStructure with a given kernel."""
+    if not is_2_kernel_prod(above_kernel):
+        raise ValueError("Input is not a valid 2-torsion kernel.")
+    kernel = [4 * gen for gen in above_kernel]
 
-    e1 = P1.weil_pairing(Q1, 2)
-    e2 = P2.weil_pairing(Q2, 2)
-    k = discrete_log(e2, e1, ord=2)
-    Q2 = inverse_mod(k, 2) * Q2
-
-    symplectic_basis = [
-        ProductPoint(P1, prod_structure.E2(0)),
-        ProductPoint(prod_structure.E1(0), P2),
-        ProductPoint(Q1, prod_structure.E2(0)),
-        ProductPoint(prod_structure.E1(0), Q2),
-    ]
-
-    return symplectic_basis
-
-
-def compute_2_isogeny_from_product(kernel):
-    """Return (codomain, isogeny) for the 2-isogeny from a product surface with the given kernel."""
     if is_2_kernel_diagonal(kernel):
         return get_diagonal_2_isogeny(kernel)
     elif is_2_kernel_prod_loop(kernel):
         return get_loop_2_isogeny(kernel)
     else:
-        return product_to_jacobian_2_isogeny(kernel)
+        return product_to_jacobian_2_isogeny(above_kernel)

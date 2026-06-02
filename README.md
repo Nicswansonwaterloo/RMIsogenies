@@ -20,7 +20,7 @@ Note that known errors can be thrown due to limitations in the richelot isogeny 
 - `enumerate_RM.py` enumerates RM endomorphisms of a starting square of elliptic curves.
 - `theta_rm/genus_two_structures.py` implements wrappers for the two surface types: `GenusTwoProductStructure` (a product of elliptic curves) and `GenusTwoJacobianStructure` (the Jacobian of a genus-2 hyperelliptic curve).
 - `theta_rm/product_point.py` implements a point on a product surface E1 × E2, with addition, scalar multiplication, order computation, and Weil pairing.
-- `theta_rm/jacobian_point.py` implements a divisor on a genus-2 Jacobian with the same interface as `ProductPoint`.
+- `theta_rm/jacobian_point.py` implements a divisor on a genus-2 Jacobian with the same interface as `CouplePoint`.
 - `theta_rm/richelot_product_isogenies.py` implements (2,2)-isogenies out of a product surface: the diagonal split, the isomorphism-induced loop, and the generic product-to-Jacobian Richelot.
 - `theta_rm/richelot_jacobian_isogeny.py` implements (2,2)-isogenies out of a Jacobian: Jacobian-to-Jacobian via the Richelot correspondence and the Jacobian-to-product split.
 - `theta_rm/richelot_vertex.py` represents a vertex in the (2,2)-isogeny graph, enumerating the 15 maximal isotropic subgroups of the 2-torsion and their corresponding neighbours, and assigns Florit–Smith type labels.

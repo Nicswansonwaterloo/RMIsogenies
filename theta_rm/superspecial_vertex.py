@@ -1,10 +1,13 @@
+from typing import Optional
+
 from sage.all import Matrix, GF, cached_method, ZZ
+
 from theta_rm.genus_two_structures import ThetaStructure
-from theta_rm.richelot_product_isogenies import (
+from theta_rm.torsion_wrappers import ThetaTorsion
+from theta_rm.theta_product_isogenies import (
     compute_2_isogeny_from_product,
-    get_symplectic_two_torsion_prod,
 )
-from theta_rm.richelot_jacobian_isogeny import (
+from theta_rm.theta_jacobian_isogeny import (
     compute_2_isogeny_from_jacobian,
 )
 
@@ -150,25 +153,11 @@ SYMPLECTIC_GL2_SUBSPACES = [
 ]
 
 
-class RichelotVertex:
-    """Vertex wrapper for a genus-2 structure with cached 2-torsion data. The two_torsion_generators must form a symplectic basis of the 2-torsion."""
-
-    def __init__(self, g2_structure: ThetaStructure, two_torsion_generators=None):
+class PPASVertex:
+    def __init__(self, g2_structure: ThetaStructure, eight_torsion: Optional[ThetaTorsion] = None):
         self.g2_structure = g2_structure
         self.invariants = g2_structure.get_isomorphism_class_invariants()
-        self.two_torsion_generators = two_torsion_generators
-
-    def _compute_two_torsion_generators(self):
-        """Return a symplectic 2-torsion basis for the current structure."""
-        if self.g2_structure.is_product:
-            return get_symplectic_two_torsion_prod(self.g2_structure)
-        raise NotImplementedError("2-torsion generators for Jacobians not implemented yet.")
-
-    def _compute_two_torsion(self):
-        """Return a cached symplectic 2-torsion basis for the current structure."""
-        if self.two_torsion_generators is None:
-            self.two_torsion_generators = self._compute_two_torsion_generators()
-        return self.two_torsion_generators
+        self.eight_torsion = eight_torsion
 
     def __repr__(self):
         if self.g2_structure.is_product:
@@ -177,7 +166,7 @@ class RichelotVertex:
 
     def __eq__(self, other):
         """Equality is determined by the isomorphism class invariants."""
-        if not isinstance(other, RichelotVertex):
+        if not isinstance(other, PPASVertex):
             return False
         return self.invariants == other.invariants
 
@@ -203,10 +192,8 @@ class RichelotVertex:
             elif self.invariants[0] == self.invariants[1]:
                 return R"S"
             return R"P"
-        elif self.g2_structure.is_jacobian:
+        else:
             return R"J"
-
-        raise ValueError("Unknown genus 2 structure type.")
 
     def get_type_latex(self):
         """Return the vertex type as a LaTeX string."""
@@ -230,23 +217,30 @@ class RichelotVertex:
         }
         return conversion[regular_string]
 
-    def _vector_to_point(self, vec, generators=None):
-        """Convert a vector to a torsion point using the provided generators."""
-        basis = self._compute_two_torsion() if generators is None else generators
-        components = [vec[i].lift_centered() * basis[i] for i in range(4)]
-        return components[0] + components[1] + components[2] + components[3]
+    
+    # def _vector_to_point(self, vec, generators: Optional[ThetaTorsion] = None):
+    #     """Convert a vector to a torsion point using the provided generators."""
+    #     if len(vec) != 4 or not all(is_IntegerMod(v) and v.modulus() == 8 for v in vec):
+    #         raise ValueError("Vector must be of length 4 with entries integers mod 8.")
 
-    def _get_all_RM_two_kernels(self):
-        """Return all rank-2 kernels as 2-torsion points."""
+    #     basis = generators if generators is not None else self.eight_torsion
+    #     components = [vec[i].lift_centered() * basis[i] for i in range(4)]
+    #     return components[0] + components[1] + components[2] + components[3]
+
+    def _get_all_kernels(self):
+        """Returns 15 pairs of 8-torsion points that descend to the 15 distinct 2-torsion kernels, in a deterministic order."""
+        if self.eight_torsion is None:
+            # TODO push the envelope here, We only need the 4 or 2 torsion in most cases.
+            raise ValueError("Cannot compute kernels without 8-torsion data.")
+        
         kernels = []
         for subspace in SYMPLECTIC_GL2_SUBSPACES:
-            kernel = [self._vector_to_point(subspace.column(i)) for i in range(2)]
-            kernels.append(kernel)
+            kernels.append(self.eight_torsion.matrix_to_kernel(subspace))
 
         return kernels
 
     def _compute_isogeny(self, kernel):
-        """Compute the 2-isogeny with the given kernel."""
+        """Compute the 2-isogeny with the 8 torsion above it."""
         if self.g2_structure.is_product:
             codomain, isogeny = compute_2_isogeny_from_product(kernel)
         else:
@@ -256,7 +250,7 @@ class RichelotVertex:
     @cached_method
     def _compute_neighboring_isogenies(self):
         """Compute all neighboring 2-isogenies."""
-        kernels = self._get_all_RM_two_kernels()
+        kernels = self._get_all_kernels()
         neighbors_with_edges = []
         for kernel in kernels:
             codomain, isogeny = self._compute_isogeny(kernel)
@@ -275,7 +269,7 @@ class RichelotVertex:
         neighbors_with_edges = self._compute_neighboring_isogenies()
         codomain_counts = {}
         for codomain, isogeny in neighbors_with_edges:
-            vertex = RichelotVertex(codomain)
+            vertex = PPASVertex(codomain)
             if vertex in codomain_counts:
                 codomain_counts[vertex] += 1
             else:

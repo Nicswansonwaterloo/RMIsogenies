@@ -1,1 +1,0 @@
-# TODO, move migrated richelot isogeny code into here
