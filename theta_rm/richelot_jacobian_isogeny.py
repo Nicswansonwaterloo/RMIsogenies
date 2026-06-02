@@ -1,18 +1,17 @@
 from sage.all import Matrix, vector, EllipticCurve
 from theta_rm.genus_two_structures import (
-    GenusTwoJacobianStructure,
     ProductThetaStructure,
 )
-from theta_rm.jacobian_point import JacobianPoint
-from theta_rm.product_point import ProductPoint
+from theta_rm.theta_point import ThetaPoint
+from theta_rm.couple_point import CouplePoint
 
 
 def is_2_kernel_jac(kernel):
     """Return True if (G1, G2) generates a valid 2-torsion kernel, i.e. G1 * G2 | h."""
     if not (isinstance(kernel, (tuple, list)) and len(kernel) == 2):
         raise ValueError("Kernel must be a tuple of length 2.")
-    if not all(isinstance(P, JacobianPoint) for P in kernel):
-        raise TypeError("Kernel generators must be Jacobian points.")
+    if not all(isinstance(P, ThetaPoint) for P in kernel):
+        raise TypeError("Kernel generators must be Theta points.")
 
     gen1, gen2 = kernel
     h = gen1.parent().h
@@ -101,7 +100,7 @@ def jacobian_to_product_2_isogeny(kernel):
         # from y^2=p1 to y^2=p2norm
         return (H10 * H20 * H30 * x, H10 * H20 * H30 * y)
 
-    def isogeny(D: JacobianPoint):
+    def isogeny(D: ThetaPoint):
         U, V = D  # Lets call the roots of U: x_a, x_b
         if homography_needed:
             # apply homography
@@ -217,7 +216,7 @@ def jacobian_to_product_2_isogeny(kernel):
                 assert yP2**2 == p2(xP2)
                 E2_image = E2(morphE2(xP2, yP2))
 
-        return ProductPoint(E1_image, E2_image)
+        return CouplePoint(E1_image, E2_image)
 
     return codomain, isogeny
 
@@ -227,157 +226,7 @@ def jacobian_to_jacobian_2_isogeny(kernel):
 
     # Richelot correspondence: see Ben Smith's thesis, Ch. 4.
     """
-    gen1, gen2 = kernel
-    g2_structure = gen1.parent()
-    J = g2_structure.jac
-    h = g2_structure.h
-    x = g2_structure.x
-
-    G1, _ = gen1
-    G2, _ = gen2
-    if G1[2] != 1 and G1[2] != 0:
-        G1 = G1 / G1[2]
-    if G2[2] != 1 and G2[2] != 0:
-        G2 = G2 / G2[2]
-
-    G3 = h // (G1 * G2)
-    M = Matrix(G.padded_list(3) for G in (G1, G2, G3))
-    delta = M.inverse()
-
-    H1 = -delta[0][0] * x**2 + 2 * delta[1][0] * x - delta[2][0]
-    H2 = -delta[0][1] * x**2 + 2 * delta[1][1] * x - delta[2][1]
-    H3 = -delta[0][2] * x**2 + 2 * delta[1][2] * x - delta[2][2]
-
-    # This is the so-called Richelot Correspondance from Ben Smith's thesis:
-    h_codomain = H1 * H2 * H3
-    codomain = GenusTwoJacobianStructure(h_codomain)
-
-    def isogeny(D: JacobianPoint):
-        U, V = D
-
-        if U.degree() == 0:
-            return JacobianPoint(J(0))
-
-        if U.degree() == 1:
-            raise NotImplementedError(
-                "Cannot yet compute image of degree 1 divisor under jacobian 2-isogeny"
-            )
-
-        # Make monic
-        if not U[2].is_one():
-            U = U / U[2]
-
-        V = V % U
-        if V == 0:
-            if U == G1 or U == G2 or U == G3.monic():
-                return JacobianPoint(J(0))
-
-        # Sum and product of (xa, xb)
-        s, p = -U[1], U[0]
-        # Compute X coordinates (non reduced, degree 4)
-        g1red = G1 - U
-        g2red = G2 - U
-        g11, g10 = g1red[1], g1red[0]
-        g21, g20 = g2red[1], g2red[0]
-        # see above
-        Px = (
-            (g11 * g11 * p + g11 * g10 * s + g10 * g10) * (H1 * H1)
-            + (2 * g11 * g21 * p + (g11 * g20 + g21 * g10) * s + 2 * g10 * g20)
-            * (H1 * H2)
-            + (g21 * g21 * p + g21 * g20 * s + g20 * g20) * (H2 * H2)
-        )  # Roots are z-coordinates of the images (x_a, \pm y_a), (x_b, \pm y_b)
-        assert Px.degree() == 4, f"Px degree not 4: {Px}\n U: {U}\n v: {V}"
-
-        # Compute Y coordinates (non reduced, degree 3)
-        assert V[2].is_zero()
-        v1, v0 = V[1], V[0]
-        # coefficient of y^2 is V(xa)V(xb)
-        Py2 = v1 * v1 * p + v1 * v0 * s + v0 * v0
-        # coefficient of y is h1(x) * (V(xa) Gred1(xb) (x-xb) + V(xb) Gred1(xa) (x-xa))
-        # so we need to symmetrize:
-        # V(xa) Gred1(xb) (x-xb)
-        # = (v1*xa+v0)*(g11*xb+g10)*(x-xb)
-        # = (v1*g11*p + v1*g10*xa + v0*g11*xb + v0*g10)*x
-        # - xb*(v1*g11*p + v1*g10*xa + v0*g11*xb + v0*g10)
-        # Symmetrizing xb^2 gives u1^2-2*u0
-        Py1 = (2 * v1 * g11 * p + v1 * g10 * s + v0 * g11 * s + 2 * v0 * g10) * x - (
-            v1 * g11 * s * p
-            + 2 * v1 * g10 * p
-            + v0 * g11 * (s * s - 2 * p)
-            + v0 * g10 * s
-        )
-        Py1 *= H1
-        # coefficient of 1 is Gred1(xa) Gred1(xb) h1(x)^2 U(x)
-        Py0 = H1 * H1 * U * (g11 * g11 * p + g11 * g10 * s + g10 * g10)
-
-        # Now reduce the divisor, and compute Cantor reduction.
-        # Py2 * y^2 + Py1 * y + Py0 = 0
-        # y = - (Py2 * hnew + Py0) / Py1
-        if Py1.is_zero() and not Py2.is_zero():
-            # Then Py2* w^2 + Py0 = 0 => w^2 = - Py0 / Py2
-            # So the image is the sum of two points with the same x-coordinate, but opposite y-coordinates. This code should never be reached.
-            return JacobianPoint(J(0))
-        if Py1.is_zero() and Py2.is_zero():
-            # In this case yayb = 0 and wa = wb = 0
-            raise NotImplementedError(
-                "Cannot have both Py1 and Py2 be zero:\n Px: {Px}\n Py0: {Py0}\n Py1: {Py1}\n Py2: {Py2}"
-            )
-
-        gcd, bez, _ = Py1.xgcd(Px)
-        if gcd == 1:
-            Py1inv = bez
-            Py = (-Py1inv * (Py2 * h_codomain + Py0)) % Px
-            assert Px.degree() == 4, (
-                f"Px degree not 4: {Px}\n Py1: {Py1}"
-            )
-            assert Py.degree() <= 3
-
-            Dx = (h_codomain - Py**2) // Px
-            Dy = (-Py) % Dx
-        else:
-            # In this case Py0 + Py2 * h_codomain must be divisible by gcd
-            # So for root za, we would have Py0(za) = 0
-            raise NotImplementedError(
-                "Py1 and Px not coprime, cannot compute isogeny image yet."
-            )
-
-        assert (h_codomain - Dy**2) % Dx == 0, (
-            f"Divisor not on curve: h: {h_codomain}, Dx: {Dx}, Dy: {Dy}"
-        )
-        jac_divisor = codomain.jac([Dx, Dy])
-        return JacobianPoint(jac_divisor)
-
-    return codomain, isogeny
-
-
-def get_symplectic_two_torsion_jac(jac_structure: GenusTwoJacobianStructure):
-    """Return a symplectic basis [T1, T2, T3, T4] of Jac(C)[2]."""
-    J = jac_structure.jac
-    Rx = jac_structure.Rx
-    x = jac_structure.x
-    h = jac_structure.h
-    roots = h.roots(multiplicities=False)
-    if h.degree() == 6:
-        assert len(roots) == 6
-    else:
-        assert len(roots) == 5 and h.degree() == 5, f"h: {h}, roots: {roots}"
-
-    T1x = (x - roots[0]) * (x - roots[1])
-    T3x = (x - roots[0]) * (x - roots[2])  # must share a factor with T1, none others
-    T2x = (x - roots[3]) * (x - roots[4])  # must share a factor with T4, none others
-    if h.degree() == 5:
-        T4x = x - roots[3]  # must share a factor with T2, none others
-    else:
-        T4x = (x - roots[3]) * (
-            x - roots[5]
-        )  # must share a factor with T2, none others
-
-    T1 = JacobianPoint(J([Rx(T1x), Rx(0)]))
-    T2 = JacobianPoint(J([Rx(T2x), Rx(0)]))
-    T3 = JacobianPoint(J([Rx(T3x), Rx(0)]))
-    T4 = JacobianPoint(J([Rx(T4x), Rx(0)]))
-
-    return [T1, T2, T3, T4]
+    pass
 
 
 def compute_2_isogeny_from_jacobian(kernel):

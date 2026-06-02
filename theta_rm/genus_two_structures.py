@@ -3,7 +3,6 @@ from sage.all import (
     get_coercion_model,
     PolynomialRing,
     cached_method,
-    batched_inversion,
 )
 from sage.schemes.hyperelliptic_curves.invariants import absolute_igusa_invariants_kohel
 from theta_rm.couple_point import CouplePoint

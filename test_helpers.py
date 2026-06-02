@@ -1,16 +1,16 @@
 from sage.all import Integers, Matrix, discrete_log, is_prime, kronecker
 
-from richelot_rm.richelot_product_isogenies import get_arbitrary_square_example
-from richelot_rm.product_point import ProductPoint
-from richelot_rm.richelot_vertex_RM import RMVertex
+from theta_rm.richelot_product_isogenies import get_arbitrary_square_example
+from theta_rm.couple_point import CouplePoint
+from theta_rm.rm_superspecial_vertex import RMVertex
 
 def get_symplectic_basis_square(E, M):
     P, Q = E.torsion_basis(M)
     two_dim_basis = [
-        ProductPoint(P, E(0)),
-        ProductPoint(E(0), P),
-        ProductPoint(Q, E(0)),
-        ProductPoint(E(0), Q),
+        CouplePoint(P, E(0)),
+        CouplePoint(E(0), P),
+        CouplePoint(Q, E(0)),
+        CouplePoint(E(0), Q),
     ]
 
     return two_dim_basis
@@ -32,10 +32,10 @@ def get_symplectic_basis_product(EA, EB, M):
     # [ -1 0 0 0 ]
     # [ 0 -1 0 0 ]
     two_dim_basis = [
-        ProductPoint(B0, EB(0)),
-        ProductPoint(EA(0), B2),
-        ProductPoint(B1, EB(0)),
-        ProductPoint(EA(0), B3),
+        CouplePoint(B0, EB(0)),
+        CouplePoint(EA(0), B2),
+        CouplePoint(B1, EB(0)),
+        CouplePoint(EA(0), B3),
     ]
 
     return two_dim_basis

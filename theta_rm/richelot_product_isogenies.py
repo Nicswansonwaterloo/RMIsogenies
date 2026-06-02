@@ -10,13 +10,10 @@ from sage.all import (
 from sage.schemes.elliptic_curves.ell_finite_field import special_supersingular_curve
 from sage.schemes.elliptic_curves.ell_curve_isogeny import EllipticCurveIsogeny
 from sage.schemes.elliptic_curves.weierstrass_morphism import WeierstrassIsomorphism
+from theta_rm.genus_two_structures import ProductThetaStructure
+from theta_rm.couple_point import CouplePoint
 
-from theta_rm.jacobian_point import JacobianPoint
-from theta_rm.product_point import ProductPoint
-from theta_rm.genus_two_structures import (
-    ProductThetaStructure,
-    GenusTwoJacobianStructure,
-)
+# from theta_rm.theta_point import ThetaPoint
 
 
 def get_square_1728_example(p):
@@ -86,7 +83,7 @@ def get_1728_product_example(p):
 def is_2_kernel_prod(kernel):
     """Return True if kernel is a valid isotropic 2-torsion kernel on a product surface."""
     if not isinstance(kernel, (list, tuple)) or len(kernel) != 2:
-        raise ValueError(f"Kernel must be a pair of ProductPoint instances: {kernel}")
+        raise ValueError(f"Kernel must be a pair of CouplePoint instances: {kernel}")
 
     gen1, gen2 = kernel
     is_isotropic = gen1.weil_pairing(gen2, 2) == 1
@@ -124,13 +121,13 @@ def get_diagonal_2_isogeny(kernel):
     P = gen1[0] if gen1[0] != 0 else gen2[0]
     Q = gen1[1] if gen1[1] != 0 else gen2[1]
 
-    phi1 = EllipticCurveIsogeny(E1, P)
-    phi2 = EllipticCurveIsogeny(E2, Q)
+    phi1 = E1.isogeny(P, model="montgomery")
+    phi2 = E2.isogeny(Q, model="montgomery")
     codomain = ProductThetaStructure(phi1.codomain(), phi2.codomain())
 
-    def isogeny(cp_pt: ProductPoint):
+    def isogeny(cp_pt: CouplePoint):
         P, Q = cp_pt
-        return ProductPoint(phi1(P), phi2(Q))
+        return CouplePoint(phi1(P), phi2(Q))
 
     return codomain, isogeny
 
@@ -299,73 +296,8 @@ def fix_curve_model(E):
 
 
 def product_to_jacobian_2_isogeny(kernel):
-    """Return (codomain, isogeny) for the Richelot 2-isogeny from E1 x E2 to a Jacobian.
-
-    # See https://eprint.iacr.org/2022/1283.pdf §3.2.2.
-    """
-    if not is_2_kernel_prod(kernel):
-        raise ValueError("Input is not a valid 2-torsion kernel.")
-
-    gen1, gen2 = kernel
-    E1, E2 = gen1.curves()
-    E1_iso = E1
-    iso1 = lambda x: x
-    E2_iso = E2
-    iso2 = lambda x: x
-    if is_bad_model(kernel):
-        E1_iso, iso1 = fix_curve_model(E1)
-        E2_iso, iso2 = fix_curve_model(E2)
-
-    Fp2 = E1_iso.base()
-    Rx = PolynomialRing(Fp2, name="x")
-    x = Rx.gen()
-
-    P1, P2 = iso1(gen1[0]), iso2(gen1[1])
-    Q1, Q2 = iso1(gen2[0]), iso2(gen2[1])
-
-    # The roots of the cubics of E1_iso and E2_iso
-    a1, a2, a3 = P1[0], Q1[0], (P1 + Q1)[0]
-    b1, b2, b3 = P2[0], Q2[0], (P2 + Q2)[0]
-    # Compute coefficients
-    M = Matrix(Fp2, [[a1 * b1, a1, b1], [a2 * b2, a2, b2], [a3 * b3, a3, b3]])
-    R, S, T = M.inverse() * vector(Fp2, [1, 1, 1])
-    RD = R * M.determinant()
-    da = (a1 - a2) * (a2 - a3) * (a3 - a1)
-    db = (b1 - b2) * (b2 - b3) * (b3 - b1)
-
-    s1, t1 = -da / RD, db / RD
-    s2, t2 = -T / R, -S / R
-
-    a1_t = (a1 - s2) / s1
-    a2_t = (a2 - s2) / s1
-    a3_t = (a3 - s2) / s1
-    h = s1 * (x**2 - a1_t) * (x**2 - a2_t) * (x**2 - a3_t)
-    codomain = GenusTwoJacobianStructure(h)
-    J = codomain.jac
-
-    def isogeny(cp_pt: ProductPoint):
-        P = iso1(cp_pt[0])
-        Q = iso2(cp_pt[1])
-        # The image of P
-        if P != 0:
-            xP, yP = P.xy()
-            uP = s1 * x**2 + s2 - xP
-            vP = Rx(yP / s1)
-            div_P = J([uP, vP])
-        else:
-            div_P = J(0)
-
-        # The image of Q
-        if Q != 0:
-            xQ, yQ = Q.xy()
-            uQ = (xQ - t2) * x**2 - t1
-            vQ = (yQ * x**3 / t1) % uQ
-            div_Q = J([uQ, vQ])
-        else:
-            div_Q = J(0)
-
-        return JacobianPoint(div_P + div_Q)
-
+    """Return (codomain, isogeny) for the Richelot 2-isogeny from E1 x E2 to a Jacobian."""
+    Pro
     return codomain, isogeny
 
 

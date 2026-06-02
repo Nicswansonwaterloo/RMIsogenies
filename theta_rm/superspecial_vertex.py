@@ -6,112 +6,154 @@ from theta_rm.richelot_product_isogenies import (
 )
 from theta_rm.richelot_jacobian_isogeny import (
     compute_2_isogeny_from_jacobian,
-    get_symplectic_two_torsion_jac,
 )
 
 # The action of Omega with respect to a symplectic basis.
 OMEGA = Matrix(ZZ, [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0]])
 # All 15 maximally isotropic subspaces of (Z/2Z)^4 with respect to OMEGA, represented as the row space of a matrix in reduced row echelon form.
 SYMPLECTIC_GL2_SUBSPACES = [
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [0, 0],
-        [0, 0],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [0, 0],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [0, 1],
-        [1, 0],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [0, 1],
-        [1, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [1, 0],
-        [0, 0],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [1, 0],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [1, 1],
-        [1, 0],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 1],
-        [1, 1],
-        [1, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [1, 0],
-        [0, 1],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [1, 0],
-        [0, 1],
-        [1, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 0],
-        [0, 0],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [1, 0],
-        [0, 0],
-        [1, 0],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [0, 0],
-        [1, 0],
-        [0, 1],
-        [0, 0],
-    ]),
-    Matrix(GF(2), [
-        [0, 0],
-        [1, 0],
-        [0, 1],
-        [0, 1],
-    ]),
-    Matrix(GF(2), [
-        [0, 0],
-        [0, 0],
-        [1, 0],
-        [0, 1],
-    ]),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [0, 0],
+            [0, 0],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [0, 0],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [1, 0],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [1, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [1, 0],
+            [0, 0],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [1, 1],
+            [1, 0],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 1],
+            [1, 1],
+            [1, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [1, 0],
+            [0, 1],
+            [1, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 0],
+            [0, 0],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [1, 0],
+            [0, 0],
+            [1, 0],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [0, 0],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+        ],
+    ),
+    Matrix(
+        GF(2),
+        [
+            [0, 0],
+            [0, 0],
+            [1, 0],
+            [0, 1],
+        ],
+    ),
 ]
 
 
 class RichelotVertex:
     """Vertex wrapper for a genus-2 structure with cached 2-torsion data. The two_torsion_generators must form a symplectic basis of the 2-torsion."""
 
-    def __init__(
-        self, g2_structure: ThetaStructure, two_torsion_generators=None
-    ):
+    def __init__(self, g2_structure: ThetaStructure, two_torsion_generators=None):
         self.g2_structure = g2_structure
         self.invariants = g2_structure.get_isomorphism_class_invariants()
         self.two_torsion_generators = two_torsion_generators
@@ -120,7 +162,7 @@ class RichelotVertex:
         """Return a symplectic 2-torsion basis for the current structure."""
         if self.g2_structure.is_product:
             return get_symplectic_two_torsion_prod(self.g2_structure)
-        return get_symplectic_two_torsion_jac(self.g2_structure)
+        raise NotImplementedError("2-torsion generators for Jacobians not implemented yet.")
 
     def _compute_two_torsion(self):
         """Return a cached symplectic 2-torsion basis for the current structure."""
@@ -194,7 +236,6 @@ class RichelotVertex:
         components = [vec[i].lift_centered() * basis[i] for i in range(4)]
         return components[0] + components[1] + components[2] + components[3]
 
-
     def _get_all_RM_two_kernels(self):
         """Return all rank-2 kernels as 2-torsion points."""
         kernels = []
@@ -206,10 +247,10 @@ class RichelotVertex:
 
     def _compute_isogeny(self, kernel):
         """Compute the 2-isogeny with the given kernel."""
-        if self.g2_structure.is_jacobian:
-            codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
-        else:
+        if self.g2_structure.is_product:
             codomain, isogeny = compute_2_isogeny_from_product(kernel)
+        else:
+            codomain, isogeny = compute_2_isogeny_from_jacobian(kernel)
         return codomain, isogeny
 
     @cached_method

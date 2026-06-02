@@ -1,5 +1,5 @@
 from sage.all import ZZ, lcm
-from theta_rm.genus_two_structures import ProductThetaStructure
+# from theta_rm.genus_two_structures import ProductThetaStructure # Removed due to circular import, but we can add back if needed
 from vendors.Theta_SageMath.utilities.discrete_log import weil_pairing_pari
 from sage.schemes.elliptic_curves.ell_point import EllipticCurvePoint
 
@@ -22,8 +22,8 @@ class CouplePoint:
     def __repr__(self):
         return "[{},{}]".format(self.P1, self.P2)
 
-    def parent(self):
-        return ProductThetaStructure(*self.curves())
+    # def parent(self):
+    #     return ProductThetaStructure(*self.curves())
 
     def curves(self):
         return (self.P1.curve(), self.P2.curve())
@@ -75,7 +75,7 @@ class CouplePoint:
 
     def __eq__(self, other):
         if other == 0:
-            E1, E2 = self.parent()
+            E1, E2 = self.curves()
             return self.P1 == E1(0) and self.P2 == E2(0)
 
         return self.P1 == other.P1 and self.P2 == other.P2

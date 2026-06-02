@@ -2,7 +2,7 @@ from sage.all import (
     Integer,
 )
 from sage.structure.element import get_coercion_model, RingElement
-from theta_rm.genus_two_structures import ThetaStructure
+# from theta_rm.genus_two_structures import ThetaStructure # Removed due to circular import, but we can add back if needed
 
 cm = get_coercion_model()
 
@@ -18,8 +18,9 @@ class ThetaPoint:
     """
 
     def __init__(self, parent, coords):
-        if not isinstance(parent, ThetaStructure):
-            raise ValueError
+        # if not isinstance(parent, ThetaStructure):
+        #     raise ValueError
+        # Removed due to circular import, but we can add back if needed
 
         self._parent = parent
         self._coords = tuple(coords)
