@@ -52,6 +52,20 @@ def reorder_basis_and_sums(basis, basis_sums, perm):
     ]
     return new_basis, new_basis_sums
 
+def is_permuation(matrix):
+    """Check if the given 4x4 matrix over Z/2^rZ is a (scalar) permutation matrix."""
+    # A permutation matrix has exactly one nonzero entry in each row and column
+    for i in range(4):
+        row = matrix.row(i)
+        if sum(1 for v in row if v != 0) != 1:
+            return False
+    for j in range(4):
+        col = matrix.column(j)
+        if sum(1 for v in col if v != 0) != 1:
+            return False
+
+    return True
+
 
 class ThetaTorsion:
     """
@@ -76,20 +90,23 @@ class ThetaTorsion:
             if not all(isinstance(b, CouplePoint) for b in basis):
                 raise ValueError("If given 4 basis elements must be Couple points.")
             self.basis = basis
+            self.is_product = True
         elif len(basis) == 10:
             if not all(isinstance(b, ThetaPoint) for b in basis):
                 raise ValueError("If given 10 basis elements must be Theta points.")
             self.basis = basis[:4]
             self.basis_sums = basis[4:]
+            self.is_product = False
         else:
             raise ValueError("Basis must have length 4 or 10.")
         
         self.r = r
 
-    def matrix_to_kernel(self, matrix):
-        """Given a 2x4 matrix over 2^r and a basis of theta_torsion, return the corresponding 2 kernel points in a tuple."""
+
+    def change_basis_make_torsion(self, matrix):
+        """Given a 4x4 change of basis matrix over 2^r, return the corresponding new basis."""
         if (
-            matrix.nrows() != 2
+            matrix.nrows() != 4
             or matrix.ncols() != 4
             or not all(
                 isinstance(v, IntegerMod_abstract) and v.modulus() == 2**self.r
@@ -98,19 +115,44 @@ class ThetaTorsion:
             )
         ):
             raise ValueError(
+                f"Matrix must be of size 4x4 with entries integers mod 2^r = {2**self.r}."
+            )
+        if is_permuation(matrix):
+            print("is permuation")
+
+        return None
+
+
+
+
+    def matrix_to_kernel(self, matrix):
+        """Given a 2x4 matrix over 2^r, return the corresponding 2 kernel points in a tuple by interpretting column vecs as points."""
+        if (
+            matrix.nrows() != 4
+            or matrix.ncols() != 2
+            or not all(
+                isinstance(v, IntegerMod_abstract) and v.modulus() == 2**self.r
+                for row in matrix
+                for v in row
+            )
+        ):
+            print(matrix)
+            print(matrix.parent())
+            raise ValueError(
                 f"Matrix must be of size 2x4 with entries integers mod 2^r = {2**self.r}."
             )
 
-        if self.g2_structure.is_product:
-            row1 = matrix[0]
-            row2 = matrix[1]
-            components1 = [row1[i].lift_centered() * self.basis[i] for i in range(4)]
-            components2 = [row2[i].lift_centered() * self.basis[i] for i in range(4)]
+        if self.is_product:
+            col1 = matrix.column(0)
+            col2 = matrix.column(1)
+            components1 = [col1[i].lift_centered() * self.basis[i] for i in range(4)]
+            components2 = [col2[i].lift_centered() * self.basis[i] for i in range(4)]
             K1 = components1[0] + components1[1] + components1[2] + components1[3]
             K2 = components2[0] + components2[1] + components2[2] + components2[3]
             return K1, K2
 
-        reduced_matrix, basis_perm = self.rref_zmod(matrix)
+        reduced_matrix, basis_perm = self.rref_zmod(matrix.transpose())
+        print(reduced_matrix)
         basis, basis_sums = reorder_basis_and_sums(
             self.basis, self.basis_sums, basis_perm
         )

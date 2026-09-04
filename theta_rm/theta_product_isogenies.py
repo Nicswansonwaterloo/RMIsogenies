@@ -79,17 +79,24 @@ def get_1728_product_example(p):
     return ProductThetaStructure(E1728, E1)
 
 
-def is_2_kernel_prod(above_kernel):
+def get_kernel_from_above(above_kernel, check_valid=True):
     """Return True if kernel is 8 torsion above isotropic 2-kernel on a product surface."""
-    if len(above_kernel) != 2 or not all(
-        isinstance(gen, CouplePoint) for gen in above_kernel
-    ):
-        return False
-
-    gen1, gen2 = [4 * gen for gen in above_kernel]
-    is_isotropic = gen1.weil_pairing(gen2, 2) == 1
-    is_order_2 = gen1.order() == 2 and gen2.order() == 2
-    return is_isotropic and is_order_2
+    if check_valid:
+        if len(above_kernel) != 2 or not all(
+            isinstance(gen, CouplePoint) for gen in above_kernel
+        ):
+            raise ValueError("Kernel of product must be a tuple of 2 CouplePoints.")
+        
+        if not all(gen.has_order(2, 3) for gen in above_kernel):
+            raise ValueError("Generators must be 8-torsion points.")
+        
+        gen1, gen2 = [4 * gen for gen in above_kernel]
+        if gen1.weil_pairing(gen2, 2) != 1:
+            raise ValueError("Kernel is not isotropic.")
+        
+        return [gen1, gen2]
+    else:
+        return [4 * gen for gen in above_kernel]
 
 
 def is_2_kernel_diagonal(kernel):
@@ -271,9 +278,7 @@ def product_to_jacobian_2_isogeny(above_kernel):
 
 def compute_2_isogeny_from_product(above_kernel):
     """Return (codomain, isogeny) for the 2-isogeny from a ProductThetaStructure with a given kernel."""
-    if not is_2_kernel_prod(above_kernel):
-        raise ValueError("Input is not a valid 2-torsion kernel.")
-    kernel = [4 * gen for gen in above_kernel]
+    kernel = get_kernel_from_above(above_kernel)
 
     if is_2_kernel_diagonal(kernel):
         return get_diagonal_2_isogeny(kernel)

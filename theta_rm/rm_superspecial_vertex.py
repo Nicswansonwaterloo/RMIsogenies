@@ -12,22 +12,18 @@ from theta_rm.superspecial_vertex import OMEGA, SYMPLECTIC_GL2_SUBSPACES, PPASVe
 from theta_rm.genus_two_structures import ThetaStructure
 from theta_rm.torsion_wrappers import ThetaTorsion
 
+
 class RMVertex(PPASVertex):
     """Similar to PPASVertex, but keep track of RM action on large torsion."""
 
-    def __init__(
-        self, g2_structure, r, two_r_theta_torsion, M_rm
-    ):
+    def __init__(self, g2_structure, r, two_r_theta_torsion, M_rm):
         if not isinstance(g2_structure, ThetaStructure):
             raise TypeError("g2_structure must be a genus-2 structure.")
         if r < 3:
             raise ValueError("r must be at least 3.")
         if not isinstance(two_r_theta_torsion, ThetaTorsion):
             raise ValueError("two_r_theta_torsion must be a ThetaTorsion instance.")
-        if (
-            M_rm.nrows() != 4
-            or M_rm.ncols() != 4
-        ):
+        if M_rm.nrows() != 4 or M_rm.ncols() != 4:
             raise ValueError("M_rm must be a 4x4 matrix.")
 
         self.r = r
@@ -38,7 +34,7 @@ class RMVertex(PPASVertex):
 
     def _get_all_kernels(self, force_deterministic=True):
         # Compute matrix action on the 2-torsion basis:
-        # TODO: it may be a problem that this is over GF(2) now...
+        # TODO: it may be a problem that this is over GF(2) now.
         M_rm = self.M_rm.change_ring(GF(2))
         kernels = []
         subspaces = []
@@ -53,24 +49,26 @@ class RMVertex(PPASVertex):
         if force_deterministic:
             # This naturally puts the dual kernel first.
             subspaces.sort(key=lambda M: M.list())
-            # W_dual = Matrix(GF(2), [[0, 0], [0, 0], [1, 0], [0, 1]])
-            # assert W_dual == subspaces[0], "Dual kernel is not first after sorting."
 
         if self.eight_torsion is None:
             self.eight_torsion = self.two_r_theta_torsion.get_projection(3)
+
         for subspace in subspaces:
-            kernels.append(ThetaTorsion(self.eight_torsion.matrix_to_kernel(subspace), self.r))
+            # TODO: This may be incorrect, as perhaps some specific lift of this subspace is actually neccesary?
+            subspace_lift = subspace.change_ring(Integers(8))
+            K1, K2 = self.eight_torsion.matrix_to_kernel(subspace_lift)
+            kernels.append((K1, K2))
 
         return kernels, subspaces
 
-    # def _compute_neighboring_isogenies(self):
-    #     kernels, subspaces = self._get_all_kernels()
-    #     neighbors_with_edges = []
-    #     for kernel, subspace in zip(kernels, subspaces):
-    #         codomain, isogeny = self._compute_isogeny(kernel)
-    #         neighbors_with_edges.append((codomain, isogeny, subspace))
+    def _compute_neighboring_isogenies(self):
+        kernels, subspaces = self._get_all_kernels()
+        neighbors_with_edges = []
+        for kernel, subspace in zip(kernels, subspaces):
+            codomain, isogeny = self._compute_isogeny(kernel)
+            neighbors_with_edges.append((codomain, isogeny, subspace))
 
-    #     return neighbors_with_edges
+        return neighbors_with_edges
 
     def _lift_symplectic(self, C):
         """
@@ -97,7 +95,7 @@ class RMVertex(PPASVertex):
             for i in range(n):
                 for j in range(i + 1, n):
                     S[i, j] = E_mod2[i, j]
-                    
+
             W_mod2 = O_inv * S
             W = Matrix(ZZ, W_mod2)
 
@@ -131,7 +129,7 @@ class RMVertex(PPASVertex):
 
         # Now, we hensel lift C0 to C:
         C = self._lift_symplectic(C0)
-        C = C.change_ring(Integers(2 ** (self.r - 1)))
+        C = C.change_ring(Integers(2 ** (self.r)))
         assert C.is_invertible(), f"C_lifted is not invertible:\n {C}"
         C_inv = C.inverse()
 
@@ -147,10 +145,10 @@ class RMVertex(PPASVertex):
         M_rm_new = M_rm_new.change_ring(Integers(2 ** (self.r - 1)))
 
         # Compute the new well-formed generators from the columns of C after pushing phi.
-        special_basis = [
-            self._vector_to_point(col, self.two_r_theta_torsion)
-            for col in C.columns()
-        ]
+        special_basis = self.two_r_theta_torsion.change_basis_make_torsion(C)
+        # special_basis = [
+        #     self._vector_to_point(col, self.two_r_theta_torsion) for col in C.columns()
+        # ]
         return special_basis, M_rm_new
 
     @cached_method
@@ -167,7 +165,7 @@ class RMVertex(PPASVertex):
                 phi(2 * special_basis[2]),
                 phi(2 * special_basis[3]),
             ]
-            # assert all(P.has_order(2, self.r - 1) for P in codomain_torsion_gens)
+            assert all(P.has_order(2, self.r - 1) for P in codomain_torsion_gens)
 
             neighbor = RMVertex(neighbor, self.r - 1, codomain_torsion_gens, M_rm_new)
 
@@ -177,5 +175,3 @@ class RMVertex(PPASVertex):
                 neighbors[neighbor] = 1
 
         return neighbors
-
-

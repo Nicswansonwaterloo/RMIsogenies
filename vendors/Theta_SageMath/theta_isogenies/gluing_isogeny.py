@@ -1,6 +1,4 @@
 from sage.all import Matrix
-
-from vendors.Theta_SageMath.theta_structures.couple_point import CouplePoint
 from vendors.Theta_SageMath.theta_structures.dimension_two import ThetaStructure, ThetaPoint
 from vendors.Theta_SageMath.theta_isogenies.isogeny import ThetaIsogeny
 from vendors.Theta_SageMath.utilities.batched_inversion import batched_inversion
@@ -170,8 +168,9 @@ class GluingThetaIsogeny(ThetaIsogeny):
         Compute the basis change on a CouplePoint to recover a ThetaPoint of
         compatible form
         """
-        if not isinstance(P, CouplePoint):
-            raise TypeError("Function assumes that the input is of type `CouplePoint`")
+        # TODO: Add back in appropriate check
+        # if not isinstance(P, CouplePoint):
+        #     raise TypeError("Function assumes that the input is of type `CouplePoint`")
 
         # extract X,Z coordinates on pairs of points
         P1, P2 = P.points()
